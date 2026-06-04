@@ -3,6 +3,7 @@
 ## 1. Uporabniški računi in Avtentikacija
 * **Prijava/Registracija:** Implementacija SSO (Single Sign-On) preko Google in Facebook računov za hiter vstop brez gesel.
 * **Profil:** Osnovni podatki (ime in priimek, profilna slika povlečena iz SSO, email).
+* **Zasebnost (Globalna lestvica):** Uporabnik se mora ob prvi prijavi izrecno strinjati (opt-in), če želi biti viden na Globalni lestvici vseh igralcev. V nasprotnem primeru je viden samo znotraj svojih zasebnih skupin.
 * **Upravljanje in GDPR:** Uporabnik ima v nastavitvah možnost trajnega izbrisa računa in vseh pripadajočih napovedi ter podatkov.
 
 ## 2. Upravljanje s tekmami (Match Data)
@@ -10,12 +11,14 @@
 * **Časovni pasovi (Timezones):** Sistem v ozadju vedno uporablja UTC čas, na uporabniškem vmesniku (UI) pa se ura tekme nujno prikaže v lokalnem času naprave uporabnika.
 * **Status tekme:**
   * **Upcoming:** Napovedovanje je odprto.
-  * **Locked:** Napovedovanje se zaklene natanko 15 minut pred uradnim začetkom tekme.
+  * **Locked:** Napovedovanje se zaklene 15 minut pred uradnim začetkom tekme. *Opomba glede validacije:* Ker gre za zabavno aplikacijo (fun app), je backend validacija časa tolerantna (lenient). Če omrežje zataji in zahtevek zamudi za nekaj sekund ali minuto, ga sistem vseeno sprejme.
   * **In Progress:** Tekma se igra (opcijsko prikazovanje "live" rezultata).
   * **Finished:** API vrne končni rezultat, sproži se izračun točk.
 
 ## 3. Skupine (Groups / Leagues)
 * **Kreiranje in Pridruževanje:** Uporabnik lahko ustvari poljubno število zasebnih skupin (npr. "Sodelavci", "Prijatelji") in ustvari unikatno kodo ali "magic link" za povabilo.
+* **Omejitve:** Posamezna skupina je omejena na **maksimalno 50 članov**.
+* **Vloge znotraj skupin (Group Admin):** Uporabnik, ki ustvari skupino, postane njen Administrator. Group Admin ima pravico odstraniti člana iz skupine (npr. če se je preko povezave pridružila napačna oseba).
 * **Arhitektura vnosa (Enkraten vnos):** Napoved je v bazi vezana neposredno na Uporabnika in Tekmo, *ne pa na skupino*. Uporabnik isti rezultat napove samo 1x, sistem pa ta rezultat avtomatsko aplicira na vse skupine, v katerih je uporabnik član.
 
 ## 4. Napovedovanje in Izločilni boji (Knockout Stage)
@@ -37,26 +40,38 @@ Točkovanje temelji izključno na rezultatu **po rednem delu (90 minut)**. Za vs
 Če je uporabnik v izločilnih bojih napovedal remi po 90 minutah in je dodatno **pravilno napovedal ekipo, ki napreduje** (po podaljških ali penalih), dobi **+1 bonus točko**. *(Maksimalen možen izkupiček za posamezno tekmo je torej 4 točke).*
 
 ## 6. Lestvice (Leaderboards)
+* **Globalna lestvica:** Prikazuje vse uporabnike aplikacije, ki so se ob prvi prijavi strinjali z javnim prikazom svojega profila.
+* **Skupinske lestvice:** Prikazujejo samo člane znotraj posamezne zasebne skupine.
 * **Prikaz:** Mesto, Profilna slika, Ime, Skupno število točk.
 * **Tie-breaker:** V primeru izenačenega števila točk, višje mesto zasede uporabnik z večjim številom "Točnih rezultatov" (3-točkovnih zadetkov).
-* **Zmogljivost (Performance):** Izračun se zgodi asinhrono (v ozadju) takoj, ko tekma dobi status "Finished". Lestvica se ne preračunava ob vsakem osveževanju strani, temveč bere shranjene skupne točke.
+* **Zmogljivost (Performance):** Izračun se zgodi asinhrono (v ozadju). Lestvica se bere iz shranjenih vrednosti.
 
 ## 7. Obvestila in Opomniki (Notifications)
-* **Dnevni opomnik:** Sistem dnevno preveri bazo in pošlje opomnik (Email ali Push) izključno tistim uporabnikom, ki nimajo vnesene napovedi za tekme, ki se igrajo tisti dan.
-* **Tedenski/Krožni povzetek:** Avtomatiziran email ob koncu določenega obdobja s statusom na lestvicah in prejetimi točkami.
+* **Dnevni opomnik:** Sistem dnevno preveri bazo in pošlje opomnik (Email ali Push) tistim, ki nimajo vnesene napovedi za tekme tistega dne.
+* **Tedenski/Krožni povzetek:** Avtomatiziran email ob koncu obdobja s statusom.
+
+## 8. Uporabniška izkušnja (UX), Onboarding in Jezik
+* **Jezik:** Aplikacija je primarno v **slovenščini**.
+* **Prikaz pravil:** V aplikaciji mora biti na vidnem mestu (npr. zavihek "Pravila" ali informacijska ikona) preprosto in jasno razložen sistem točkovanja, da se prepreči zmeda uporabnikov.
+* **Onboarding poti:**
+  * **Organski uporabnik (Ustvarjalec):** Uporabnik, ki pride samostojno. UX ga takoj po prijavi usmeri, naj ustvari svojo prvo skupino in pošlje vabila prijateljem (avtomatično postane Group Admin).
+  * **Povabljeni uporabnik:** Uporabnik, ki pride preko povabila (magic link). UX ga po prijavi takoj pripelje neposredno v skupino, kamor je bil povabljen. Vidi člane, lestvico skupine in gumb za začetek napovedovanja tekem.
+
+## 9. Globalni Admin sistem (Global Roles & Admin)
+* **Admin Dashboard:** Uporabniški vmesnik, namenjen izključno lastnikom/administratorjem celotne aplikacije. Omogoča:
+  * Brisanje neprimernih imen skupin ali uporabnikov.
+  * Ročno popravljanje in vnos rezultatov tekem (kot "fallback" v primeru, da zunanji API-Football pade ali posreduje napačne podatke).
+  * Reševanje morebitnih pritožb ali sistemskih napak.
+  * Nadzor nad številom API klicev in stanjem baze.
+
+## 10. Pravna določila in Monetizacija
+* **Monetizacija:** Zaenkrat **ni oglasov**. Aplikacija se osredotoča na čisto uporabniško izkušnjo.
+* **Terms of Service:** Splošni pogoji uporabe so zahtevani zaradi SSO prijav in transparentnosti. Zavedeni so v ločenem dokumentu `POGOJI_UPORABE.md`.
 
 ---
 
-## 8. Tehnični Stack in Podatkovna arhitektura (Priporočeno)
-
-* **Frontend:** Next.js (React) - zasnovano kot PWA (Progressive Web App).
+## 11. Tehnični Stack in Podatkovna arhitektura (Priporočeno)
+* **Frontend:** Next.js (React) - zasnovano kot PWA.
 * **Backend, Baza & Auth:** Supabase (PostgreSQL).
 * **Obvestila:** Resend (Email) / FCM (Push).
 * **API za rezultate:** API-Football.
-
-### Skica relacijske baze (Core Tables):
-1. **`users`**: `id`, `name`, `avatar_url`, `email`
-2. **`matches`**: `id`, `home_team`, `away_team`, `match_time_utc`, `is_knockout`, `status`, `actual_score_home`, `actual_score_away`, `actual_advancing_team`
-3. **`predictions`**: `id`, `user_id`, `match_id`, `pred_score_home`, `pred_score_away`, `pred_advancing_team`, `earned_points`
-4. **`groups`**: `id`, `name`, `invite_code`, `creator_user_id`
-5. **`group_members`**: `group_id`, `user_id`
