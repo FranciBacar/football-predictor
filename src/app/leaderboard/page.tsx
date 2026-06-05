@@ -1,0 +1,59 @@
+import { createClient } from '@/utils/supabase/server'
+import Navbar from '@/components/Navbar'
+import LeaderboardClient from './LeaderboardClient'
+import { redirect } from 'next/navigation'
+import { Trophy } from 'lucide-react'
+
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ group?: string }>
+}) {
+  const supabase = await createClient()
+  const { group: groupId } = await searchParams
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Pridobi globalno lestvico
+  const { data: globalData } = await supabase.rpc('get_global_leaderboard')
+
+  // Pridobi skupin, v katerih je prijavljen uporabnik
+  const { data: memberships } = await supabase
+    .from('group_members')
+    .select('group_id, groups(id, name)')
+    .eq('user_id', user.id)
+
+  const groups =
+    memberships
+      ?.map((m) => m.groups)
+      .filter(Boolean)
+      .map((g) => g as { id: string; name: string }) ?? []
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0 pt-0 md:pt-16">
+      <Navbar activePath="/leaderboard" />
+
+      <main className="max-w-3xl mx-auto px-4 md:px-0 mt-4 md:mt-0">
+        <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-blue-100">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Trophy size={20} className="text-yellow-500" />
+            Lestvica
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Razvrščeni po skupnih točkah. Tie-breaker: število točnih rezultatov.
+          </p>
+        </div>
+
+        <LeaderboardClient
+          globalData={globalData ?? []}
+          groups={groups}
+          currentUserId={user.id}
+          initialGroupId={groupId ?? null}
+        />
+      </main>
+    </div>
+  )
+}

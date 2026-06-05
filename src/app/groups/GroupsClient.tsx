@@ -1,18 +1,28 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { Users, Plus, KeyRound } from 'lucide-react'
+import { Users, Plus, KeyRound, Copy, Check } from 'lucide-react'
 
 export default function GroupsClient({ userId, initialGroups }: { userId: string, initialGroups: any[] }) {
   const supabase = createClient()
+  const router = useRouter()
   const [groups, setGroups] = useState(initialGroups)
-  
+
   const [isCreating, setIsCreating] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
-  
+
   const [isJoining, setIsJoining] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
+
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const copyInviteCode = async (code: string, groupId: string) => {
+    await navigator.clipboard.writeText(code)
+    setCopiedId(groupId)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return
@@ -139,8 +149,18 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
               <h3 className="font-bold text-lg mb-1">{group.name}</h3>
               <div className="text-sm text-gray-500 mb-4 bg-gray-50 px-3 py-2 rounded-md font-mono mt-2 flex justify-between items-center">
                 <span>Koda: <strong className="text-gray-900">{group.invite_code}</strong></span>
+                <button
+                  onClick={() => copyInviteCode(group.invite_code, group.id)}
+                  className="ml-2 p-1.5 rounded-md hover:bg-gray-200 transition-colors text-gray-500"
+                  title="Kopiraj kodo"
+                >
+                  {copiedId === group.id ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                </button>
               </div>
-              <button className="w-full bg-gray-100 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-200 transition-colors">
+              <button
+                onClick={() => router.push(`/leaderboard?group=${group.id}`)}
+                className="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
                 Poglej Lestvico
               </button>
             </div>
