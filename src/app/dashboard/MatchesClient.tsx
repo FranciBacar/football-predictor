@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
 type Match = {
@@ -23,6 +23,11 @@ type Prediction = {
   pred_advancing_team: string | null
 }
 
+const STAGE_ORDER = [
+  'Group A', 'Group B', 'Group C', 'Group D', 'Group E', 'Group F', 'Group G', 'Group H',
+  'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third place play-off', 'Final'
+]
+
 export default function MatchesClient({ 
   matches, 
   initialPredictions, 
@@ -34,7 +39,6 @@ export default function MatchesClient({
 }) {
   const supabase = createClient()
   
-  // Stanje napovedi spremenimo v lookup objekt (key = match_id)
   const [predictions, setPredictions] = useState<Record<string, Prediction>>(() => {
     const acc: Record<string, Prediction> = {}
     initialPredictions.forEach(p => {
@@ -44,6 +48,17 @@ export default function MatchesClient({
   })
 
   const [savingId, setSavingId] = useState<string | null>(null)
+
+  const availableStages = useMemo(() => {
+    const stages = Array.from(new Set(matches.map(m => m.stage)))
+    return stages.sort((a, b) => {
+      const indexA = STAGE_ORDER.indexOf(a)
+      const indexB = STAGE_ORDER.indexOf(b)
+      return (indexA > -1 ? indexA : 99) - (indexB > -1 ? indexB : 99)
+    })
+  }, [matches])
+
+  const [activeStage, setActiveStage] = useState<string>(availableStages[0] || 'Group A')
 
   const handleScoreChange = (matchId: string, team: 'home' | 'away', value: string) => {
     const numValue = value === '' ? 0 : parseInt(value)
@@ -77,7 +92,6 @@ export default function MatchesClient({
 
     setSavingId(matchId)
     
-    // Upsert logika v Supabase
     const { error } = await supabase
       .from('predictions')
       .upsert({
@@ -96,94 +110,117 @@ export default function MatchesClient({
     setTimeout(() => setSavingId(null), 500)
   }
 
+  const filteredMatches = matches.filter(m => m.stage === activeStage)
+
   return (
     <div className="space-y-4">
-      {matches.map((match) => {
-        const pred = predictions[match.id] || { pred_score_home: '', pred_score_away: '' }
-        const isLocked = match.status !== 'Upcoming'
-        
-        // Ali gre za izločilne boje in je napovedan remi?
-        const isDraw = pred.pred_score_home !== '' && pred.pred_score_home === pred.pred_score_away
-        const needsAdvancingTeam = match.is_knockout && isDraw
+      
+      <div className="flex overflow-x-auto gap-2 pb-2 mb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+        {availableStages.map(stage => (
+          <button
+            key={stage}
+            onClick={() => setActiveStage(stage)}
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+              activeStage === stage 
+                ? 'bg-blue-600 text-white shadow-md' 
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {stage.replace('Group', 'Skupina').replace('Round of 16', 'Osmina finala').replace('Quarter-finals', 'Četrtfinale').replace('Semi-finals', 'Polfinale').replace('Final', 'Finale')}
+          </button>
+        ))}
+      </div>
 
-        // Format datuma
-        const matchDate = new Date(match.match_time_utc)
-        const dateStr = matchDate.toLocaleDateString('sl-SI', { weekday: 'short', day: '2-digit', month: '2-digit' })
-        const timeStr = matchDate.toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' })
+      {filteredMatches.length === 0 ? (
+        <div className="text-center bg-white border border-dashed border-gray-300 rounded-xl py-12 px-4 text-gray-500">
+          V tej fazi trenutno ni tekem.
+        </div>
+      ) : (
+        filteredMatches.map((match) => {
+          const pred = predictions[match.id] || { pred_score_home: '', pred_score_away: '' }
+          const isLocked = match.status !== 'Upcoming'
+          
+          const isDraw = pred.pred_score_home !== '' && pred.pred_score_home === pred.pred_score_away
+          const needsAdvancingTeam = match.is_knockout && isDraw
 
-        return (
-          <div key={match.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="bg-gray-50 px-4 py-2 text-xs text-gray-500 font-medium flex justify-between border-b border-gray-100">
-              <span>{match.stage} • {dateStr} ob {timeStr}</span>
-              <span className={isLocked ? 'text-red-500 font-bold' : 'text-green-600'}>
-                {isLocked ? 'ZAKLENJENO' : 'ODPRTO'}
-              </span>
-            </div>
+          const matchDate = new Date(match.match_time_utc)
+          const dateStr = matchDate.toLocaleDateString('sl-SI', { weekday: 'short', day: '2-digit', month: '2-digit' })
+          const timeStr = matchDate.toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' })
 
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex-1 text-right font-semibold text-lg">{match.home_team}</div>
-                
-                <div className="px-4 flex items-center gap-2">
-                  <input 
-                    type="number" 
-                    min="0"
-                    disabled={isLocked}
-                    value={pred.pred_score_home}
-                    onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
-                    className="w-12 h-12 text-center text-xl font-bold bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  />
-                  <span className="text-gray-400 font-bold">:</span>
-                  <input 
-                    type="number" 
-                    min="0"
-                    disabled={isLocked}
-                    value={pred.pred_score_away}
-                    onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
-                    className="w-12 h-12 text-center text-xl font-bold bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  />
-                </div>
-
-                <div className="flex-1 text-left font-semibold text-lg">{match.away_team}</div>
+          return (
+            <div key={match.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-gray-50 px-4 py-2 text-xs text-gray-500 font-medium flex justify-between border-b border-gray-100">
+                <span>{dateStr} ob {timeStr}</span>
+                <span className={isLocked ? 'text-red-500 font-bold' : 'text-green-600'}>
+                  {isLocked ? 'ZAKLENJENO' : 'ODPRTO'}
+                </span>
               </div>
 
-              {needsAdvancingTeam && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm">
-                  <p className="text-blue-800 font-medium mb-2">Ker si napovedal remi v izločilnih bojih, kdo napreduje (po podaljških/penalih)?</p>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleAdvancingChange(match.id, match.home_team)}
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1 text-right font-semibold text-lg md:text-xl">{match.home_team}</div>
+                  
+                  <div className="px-4 flex items-center gap-2">
+                    <input 
+                      type="number" 
+                      min="0"
                       disabled={isLocked}
-                      className={`flex-1 py-2 rounded-md font-medium transition-colors ${pred.pred_advancing_team === match.home_team ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-blue-700'}`}
-                    >
-                      {match.home_team}
-                    </button>
-                    <button 
-                      onClick={() => handleAdvancingChange(match.id, match.away_team)}
+                      value={pred.pred_score_home}
+                      onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
+                      className="w-12 h-12 text-center text-xl font-bold bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    />
+                    <span className="text-gray-400 font-bold">:</span>
+                    <input 
+                      type="number" 
+                      min="0"
                       disabled={isLocked}
-                      className={`flex-1 py-2 rounded-md font-medium transition-colors ${pred.pred_advancing_team === match.away_team ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-blue-700'}`}
+                      value={pred.pred_score_away}
+                      onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
+                      className="w-12 h-12 text-center text-xl font-bold bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div className="flex-1 text-left font-semibold text-lg md:text-xl">{match.away_team}</div>
+                </div>
+
+                {needsAdvancingTeam && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm">
+                    <p className="text-blue-800 font-medium mb-2">Ker si napovedal remi v izločilnih bojih, kdo napreduje (po podaljških/penalih)?</p>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleAdvancingChange(match.id, match.home_team)}
+                        disabled={isLocked}
+                        className={`flex-1 py-2 rounded-md font-medium transition-colors ${pred.pred_advancing_team === match.home_team ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-blue-700'}`}
+                      >
+                        {match.home_team}
+                      </button>
+                      <button 
+                        onClick={() => handleAdvancingChange(match.id, match.away_team)}
+                        disabled={isLocked}
+                        className={`flex-1 py-2 rounded-md font-medium transition-colors ${pred.pred_advancing_team === match.away_team ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-blue-700'}`}
+                      >
+                        {match.away_team}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!isLocked && (
+                  <div className="mt-4 flex justify-end">
+                    <button 
+                      onClick={() => savePrediction(match.id)}
+                      disabled={savingId === match.id || pred.pred_score_home === '' || pred.pred_score_away === '' || (needsAdvancingTeam && !pred.pred_advancing_team)}
+                      className="bg-gray-900 text-white px-6 py-2 rounded-lg font-medium text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors w-full md:w-auto"
                     >
-                      {match.away_team}
+                      {savingId === match.id ? 'Shranjujem...' : 'Shrani napoved'}
                     </button>
                   </div>
-                </div>
-              )}
-
-              {!isLocked && (
-                <div className="mt-4 flex justify-end">
-                  <button 
-                    onClick={() => savePrediction(match.id)}
-                    disabled={savingId === match.id || pred.pred_score_home === '' || pred.pred_score_away === '' || (needsAdvancingTeam && !pred.pred_advancing_team)}
-                    className="bg-gray-900 text-white px-6 py-2 rounded-lg font-medium text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors"
-                  >
-                    {savingId === match.id ? 'Shranjujem...' : 'Shrani napoved'}
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })
+      )}
     </div>
   )
 }
