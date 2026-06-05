@@ -24,9 +24,20 @@ type Prediction = {
 }
 
 const STAGE_ORDER = [
-  'Group A', 'Group B', 'Group C', 'Group D', 'Group E', 'Group F', 'Group G', 'Group H',
-  'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third place play-off', 'Final'
+  'Group A', 'Group B', 'Group C', 'Group D', 'Group E', 'Group F',
+  'Group G', 'Group H', 'Group I', 'Group J', 'Group K', 'Group L',
+  'Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Third place play-off', 'Final'
 ]
+
+const STAGE_LABELS: Record<string, string> = {
+  'Group A': 'Skupina A', 'Group B': 'Skupina B', 'Group C': 'Skupina C',
+  'Group D': 'Skupina D', 'Group E': 'Skupina E', 'Group F': 'Skupina F',
+  'Group G': 'Skupina G', 'Group H': 'Skupina H', 'Group I': 'Skupina I',
+  'Group J': 'Skupina J', 'Group K': 'Skupina K', 'Group L': 'Skupina L',
+  'Round of 32': 'Krog 32', 'Round of 16': 'Osmina finala',
+  'Quarter-finals': 'Četrtfinale', 'Semi-finals': 'Polfinale',
+  'Third place play-off': '3. mesto', 'Final': 'Finale',
+}
 
 export default function MatchesClient({ 
   matches, 
@@ -126,7 +137,7 @@ export default function MatchesClient({
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            {stage.replace('Group', 'Skupina').replace('Round of 16', 'Osmina finala').replace('Quarter-finals', 'Četrtfinale').replace('Semi-finals', 'Polfinale').replace('Final', 'Finale')}
+            {STAGE_LABELS[stage] ?? stage}
           </button>
         ))}
       </div>
