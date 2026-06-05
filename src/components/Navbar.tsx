@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Trophy, Users, BarChart2 } from 'lucide-react'
+import { Trophy, Users, BarChart2, UserCircle } from 'lucide-react'
 
 export default function Navbar({ activePath }: { activePath: string }) {
   return (
@@ -42,6 +42,18 @@ export default function Navbar({ activePath }: { activePath: string }) {
             <Users size={18} />
             Skupine
           </Link>
+
+          <Link
+            href="/profile"
+            className={`py-4 flex items-center gap-2 font-medium border-b-2 transition-colors ml-auto ${
+              activePath === '/profile'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
+            }`}
+          >
+            <UserCircle size={18} />
+            Profil
+          </Link>
         </div>
       </nav>
 
@@ -82,6 +94,18 @@ export default function Navbar({ activePath }: { activePath: string }) {
           >
             <Users size={24} />
             Skupine
+          </Link>
+
+          <Link
+            href="/profile"
+            className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
+              activePath === '/profile'
+                ? 'text-blue-600'
+                : 'text-gray-400 hover:text-gray-900'
+            }`}
+          >
+            <UserCircle size={24} />
+            Profil
           </Link>
         </div>
       </nav>
