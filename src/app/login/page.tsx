@@ -86,6 +86,44 @@ function LoginForm() {
         </p>
       </div>
 
+      {/* Scoring rules */}
+      <div className="w-full max-w-md mt-4 bg-white rounded-2xl shadow-sm p-6 text-left">
+        <h2 className="text-base font-bold mb-3" style={{ color: '#1a1a1a' }}>🏆 Pravila igre</h2>
+
+        <div className="space-y-2 mb-4">
+          <div className="flex justify-between items-center py-2 border-b border-gray-50">
+            <span className="text-sm text-gray-600">🎯 Točen rezultat (npr. 2:1 → 2:1)</span>
+            <span className="font-bold text-sm" style={{ color: '#0f766e' }}>3 točke</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-gray-50">
+            <span className="text-sm text-gray-600">📐 Pravilen tip + zadetki ene ekipe (npr. 3:1 → 2:1)</span>
+            <span className="font-bold text-sm" style={{ color: '#0f766e' }}>2 točki</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-gray-50">
+            <span className="text-sm text-gray-600">✅ Pravilen tip (zmagovalec ali remi)</span>
+            <span className="font-bold text-sm" style={{ color: '#0f766e' }}>1 točka</span>
+          </div>
+          <div className="flex justify-between items-center py-2">
+            <span className="text-sm text-gray-600">⚡ Od 1/8 finala naprej</span>
+            <span className="font-bold text-sm" style={{ color: '#0f766e' }}>× 2 točke</span>
+          </div>
+        </div>
+
+        <h3 className="text-sm font-bold mb-2 mt-4" style={{ color: '#1a1a1a' }}>🔮 Posebne napovedi (bonus točke)</h3>
+        <div className="space-y-1">
+          <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+            <span className="text-sm text-gray-600">🏆 Zmagovalec SP, najboljši strelec, MVP</span>
+            <span className="font-bold text-sm" style={{ color: '#0f766e' }}>10 točk vsak</span>
+          </div>
+          <div className="flex justify-between items-center py-1.5">
+            <span className="text-sm text-gray-600">🥇 Zmagovalec vsake skupine (A–L)</span>
+            <span className="font-bold text-sm" style={{ color: '#0f766e' }}>3 točke vsaka</span>
+          </div>
+        </div>
+
+        <p className="mt-4 text-xs text-gray-400">Posebne napovedi zaklene pred začetkom SP (11. junij 2026). Napovedi tekem se zaklenejo 15 min pred tekmo.</p>
+      </div>
+
       <p className="mt-6 text-xs text-gray-400">
         Made with ❤️ by{' '}
         <a href="https://goodish.agency" target="_blank" rel="noopener noreferrer" className="font-medium hover:underline" style={{ color: 'var(--goodish-green)' }}>

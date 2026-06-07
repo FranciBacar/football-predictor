@@ -111,7 +111,7 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
             href="https://github.com/openfootball/worldcup.json"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 underline"
+            className="underline" style={{ color: 'var(--teal)' }}
           >
             openfootball/worldcup.json
           </a>
@@ -190,14 +190,14 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
                         type="number" min="0"
                         value={scoreHome}
                         onChange={e => setScoreHome(e.target.value)}
-                        className="w-14 h-10 text-center text-lg font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-14 h-10 text-center text-lg font-bold border border-gray-300 rounded-lg focus:ring-2 outline-none" style={{ '--tw-ring-color': 'var(--teal)' } as any}
                       />
                       <span className="text-gray-400 font-bold">:</span>
                       <input
                         type="number" min="0"
                         value={scoreAway}
                         onChange={e => setScoreAway(e.target.value)}
-                        className="w-14 h-10 text-center text-lg font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="w-14 h-10 text-center text-lg font-bold border border-gray-300 rounded-lg focus:ring-2 outline-none" style={{ '--tw-ring-color': 'var(--teal)' } as any}
                       />
                       <div className="flex-1 text-left text-sm font-medium text-gray-700 truncate">
                         {match.away_team}
@@ -210,13 +210,19 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
                         <div className="flex gap-2">
                           <button
                             onClick={() => setAdvancing(match.home_team)}
-                            className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${advancing === match.home_team ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-700'}`}
+                            className="flex-1 py-2 rounded-lg text-sm font-medium border transition-colors"
+                            style={advancing === match.home_team
+                              ? { background: 'var(--teal)', borderColor: 'var(--teal)', color: 'white' }
+                              : { borderColor: '#e5e7eb', color: '#374151' }}
                           >
                             {match.home_team}
                           </button>
                           <button
                             onClick={() => setAdvancing(match.away_team)}
-                            className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${advancing === match.away_team ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-700'}`}
+                            className="flex-1 py-2 rounded-lg text-sm font-medium border transition-colors"
+                            style={advancing === match.away_team
+                              ? { background: 'var(--teal)', borderColor: 'var(--teal)', color: 'white' }
+                              : { borderColor: '#e5e7eb', color: '#374151' }}
                           >
                             {match.away_team}
                           </button>

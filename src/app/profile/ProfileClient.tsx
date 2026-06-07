@@ -78,7 +78,7 @@ export default function ProfileClient({ profile }: { profile: UserProfile }) {
               className="rounded-full border-2 border-gray-200"
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-2xl" style={{ background: 'var(--grad)' }}>
               {profile.name.charAt(0).toUpperCase()}
             </div>
           )}
@@ -98,20 +98,20 @@ export default function ProfileClient({ profile }: { profile: UserProfile }) {
         <button
           onClick={handleOptInToggle}
           disabled={savingOptIn}
-          className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-            isOptIn
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 bg-gray-50'
-          }`}
+          className="w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all"
+          style={isOptIn
+            ? { borderColor: 'var(--teal)', background: 'var(--teal-light)' }
+            : { borderColor: '#e5e7eb', background: '#f9fafb' }
+          }
         >
           <div className="flex items-center gap-3">
             {isOptIn ? (
-              <Globe size={20} className="text-blue-600" />
+              <Globe size={20} style={{ color: 'var(--teal)' }} />
             ) : (
               <Lock size={20} className="text-gray-400" />
             )}
             <div className="text-left">
-              <p className={`font-semibold text-sm ${isOptIn ? 'text-blue-700' : 'text-gray-700'}`}>
+              <p className="font-semibold text-sm" style={isOptIn ? { color: 'var(--teal)' } : { color: '#374151' }}>
                 {isOptIn ? 'Viden na globalni lestvici' : 'Skrit z globalne lestvice'}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -121,8 +121,11 @@ export default function ProfileClient({ profile }: { profile: UserProfile }) {
               </p>
             </div>
           </div>
-          {/* Toggle switch */}
-          <div className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${isOptIn ? 'bg-blue-500' : 'bg-gray-300'}`}>
+          {/* iOS-style toggle */}
+          <div
+            className="w-12 h-6 rounded-full transition-all relative flex-shrink-0"
+            style={{ background: isOptIn ? 'var(--teal)' : '#d1d5db' }}
+          >
             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isOptIn ? 'translate-x-7' : 'translate-x-1'}`} />
           </div>
         </button>

@@ -54,7 +54,7 @@ export default function LeaderboardClient({
   const entries: LeaderboardEntry[] = activeTab === 'global' ? globalData : (groupData[activeTab] ?? [])
 
   const tabStyle = (isActive: boolean) => isActive
-    ? { background: 'var(--goodish-gradient)', color: 'white' }
+    ? { background: 'linear-gradient(115deg, #0f766e 0%, #2dd4bf 100%)', color: '#ffffff' }
     : {}
 
   const tabClass = (isActive: boolean) =>

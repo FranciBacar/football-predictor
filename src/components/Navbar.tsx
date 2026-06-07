@@ -17,15 +17,6 @@ export default function Navbar({ activePath }: { activePath: string }) {
       {/* Desktop */}
       <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 flex items-center gap-8">
-          {/* Logo */}
-          <Link href="/dashboard" className="py-3 mr-2 flex-shrink-0">
-            <img
-              src="https://goodish.agency/wp-content/uploads/2023/06/goodish-logotype-full-color-rgb-1024x251.png"
-              alt="Goodish"
-              className="h-7 object-contain"
-            />
-          </Link>
-
           <Link href="/dashboard" className={`${linkBase} ${activePath === '/dashboard' ? active : inactive}`}>
             <Trophy size={18} />
             Napovedi

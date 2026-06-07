@@ -33,11 +33,11 @@ export default async function LeaderboardPage({
       .map((g) => g as { id: string; name: string }) ?? []
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 md:pb-0 pt-0 md:pt-16">
+    <div className="min-h-screen pb-20 md:pb-0 pt-0 md:pt-16" style={{ background: 'var(--page)' }}>
       <Navbar activePath="/leaderboard" />
 
       <main className="max-w-3xl mx-auto px-4 md:px-0 mt-4 md:mt-0">
-        <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-blue-100">
+        <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Trophy size={20} className="text-yellow-500" />
             Lestvica
