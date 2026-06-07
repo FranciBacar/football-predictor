@@ -1,31 +1,51 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { Trophy } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function LoginPage() {
+function LoginForm() {
   const supabase = createClient()
+  const searchParams = useSearchParams()
+  const inviteCode = searchParams.get('inviteCode')
+  const next = inviteCode ? `/join?code=${inviteCode}` : '/dashboard'
 
   const handleLogin = async (provider: 'google' | 'facebook' | 'github') => {
     await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     })
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'var(--goodish-gray)' }}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
-        <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <Trophy size={32} />
-        </div>
         
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Football Predictor</h1>
-        <p className="text-gray-500 mb-8">Prijavi se in začni z napovedmi za prihajajoče Svetovno prvenstvo!</p>
+        {/* Goodish logo */}
+        <a href="https://goodish.agency" target="_blank" rel="noopener noreferrer" className="inline-block mb-6">
+          <img
+            src="https://goodish.agency/wp-content/uploads/2023/06/goodish-logotype-full-color-rgb-1024x251.png"
+            alt="Goodish"
+            className="h-8 mx-auto object-contain"
+          />
+        </a>
 
-        <div className="space-y-4">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl" style={{ background: 'var(--goodish-green-light)' }}>
+          ⚽
+        </div>
+
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Football Predictor</h1>
+        <p className="text-gray-500 text-sm mb-2">Svetovno Prvenstvo 2026</p>
+        {inviteCode && (
+          <div className="mb-4 px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'var(--goodish-green-light)', color: 'var(--goodish-green-dark)' }}>
+            🎉 Prijaviš se in samodejno se pridružiš skupini!
+          </div>
+        )}
+        <p className="text-gray-400 text-sm mb-8">Prijavi se in začni z napovedmi</p>
+
+        <div className="space-y-3">
           <button
             onClick={() => handleLogin('google')}
             className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 font-medium py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors"
@@ -41,14 +61,15 @@ export default function LoginPage() {
 
           <button
             onClick={() => handleLogin('facebook')}
-            className="w-full flex items-center justify-center gap-3 bg-[#1877F2] text-white font-medium py-3 px-4 rounded-xl hover:bg-[#166FE5] transition-colors shadow-sm"
+            className="w-full flex items-center justify-center gap-3 text-white font-medium py-3 px-4 rounded-xl transition-colors shadow-sm"
+            style={{ background: '#1877F2' }}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
             </svg>
             Prijava s Facebookom
           </button>
-          
+
           <button
             onClick={() => handleLogin('github')}
             className="w-full flex items-center justify-center gap-3 bg-gray-900 text-white font-medium py-3 px-4 rounded-xl hover:bg-gray-800 transition-colors shadow-sm"
@@ -60,10 +81,25 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="mt-8 text-xs text-gray-400">
-          Z nadaljevanjem se strinjate z našimi Pogoje uporabe. Aplikacija je izključno zabavne narave.
+        <p className="mt-6 text-xs text-gray-400">
+          Z nadaljevanjem se strinjaš s pogoji uporabe. Aplikacija je izključno zabavne narave.
         </p>
       </div>
+
+      <p className="mt-6 text-xs text-gray-400">
+        Made with ❤️ by{' '}
+        <a href="https://goodish.agency" target="_blank" rel="noopener noreferrer" className="font-medium hover:underline" style={{ color: 'var(--goodish-green)' }}>
+          Goodish
+        </a>
+      </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

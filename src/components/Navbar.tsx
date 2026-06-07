@@ -1,110 +1,67 @@
 import Link from 'next/link'
 import { Trophy, Users, BarChart2, UserCircle } from 'lucide-react'
 
+const GOODISH_GREEN = '#6DBF4A'
+
 export default function Navbar({ activePath }: { activePath: string }) {
+  const linkBase = 'py-4 flex items-center gap-2 font-medium border-b-2 transition-colors'
+  const active = `border-[#6DBF4A] text-[#6DBF4A]`
+  const inactive = 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
+
+  const mobileBase = 'flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors'
+  const mobileActive = 'text-[#6DBF4A]'
+  const mobileInactive = 'text-gray-400 hover:text-gray-900'
+
   return (
     <>
-      {/* Desktop Navbar (prikazano samo na večjih zaslonih) */}
+      {/* Desktop */}
       <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 flex gap-8">
-          <Link
-            href="/dashboard"
-            className={`py-4 flex items-center gap-2 font-medium border-b-2 transition-colors ${
-              activePath === '/dashboard'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
+        <div className="max-w-3xl mx-auto px-4 flex items-center gap-8">
+          {/* Logo */}
+          <Link href="/dashboard" className="py-3 mr-2 flex-shrink-0">
+            <img
+              src="https://goodish.agency/wp-content/uploads/2023/06/goodish-logotype-full-color-rgb-1024x251.png"
+              alt="Goodish"
+              className="h-7 object-contain"
+            />
+          </Link>
+
+          <Link href="/dashboard" className={`${linkBase} ${activePath === '/dashboard' ? active : inactive}`}>
             <Trophy size={18} />
             Napovedi
           </Link>
-
-          <Link
-            href="/leaderboard"
-            className={`py-4 flex items-center gap-2 font-medium border-b-2 transition-colors ${
-              activePath === '/leaderboard'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
+          <Link href="/leaderboard" className={`${linkBase} ${activePath === '/leaderboard' ? active : inactive}`}>
             <BarChart2 size={18} />
             Lestvica
           </Link>
-
-          <Link
-            href="/groups"
-            className={`py-4 flex items-center gap-2 font-medium border-b-2 transition-colors ${
-              activePath === '/groups'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
+          <Link href="/groups" className={`${linkBase} ${activePath === '/groups' ? active : inactive}`}>
             <Users size={18} />
             Skupine
           </Link>
-
-          <Link
-            href="/profile"
-            className={`py-4 flex items-center gap-2 font-medium border-b-2 transition-colors ml-auto ${
-              activePath === '/profile'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
+          <Link href="/profile" className={`${linkBase} ${activePath === '/profile' ? active : inactive} ml-auto`}>
             <UserCircle size={18} />
             Profil
           </Link>
         </div>
       </nav>
 
-      {/* Mobile Navbar (prikazano samo na telefonih spodaj) */}
-      <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex justify-around">
-          <Link
-            href="/dashboard"
-            className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
-              activePath === '/dashboard'
-                ? 'text-blue-600'
-                : 'text-gray-400 hover:text-gray-900'
-            }`}
-          >
-            <Trophy size={24} />
+          <Link href="/dashboard" className={`${mobileBase} ${activePath === '/dashboard' ? mobileActive : mobileInactive}`}>
+            <Trophy size={22} />
             Napovedi
           </Link>
-
-          <Link
-            href="/leaderboard"
-            className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
-              activePath === '/leaderboard'
-                ? 'text-blue-600'
-                : 'text-gray-400 hover:text-gray-900'
-            }`}
-          >
-            <BarChart2 size={24} />
+          <Link href="/leaderboard" className={`${mobileBase} ${activePath === '/leaderboard' ? mobileActive : mobileInactive}`}>
+            <BarChart2 size={22} />
             Lestvica
           </Link>
-
-          <Link
-            href="/groups"
-            className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
-              activePath === '/groups'
-                ? 'text-blue-600'
-                : 'text-gray-400 hover:text-gray-900'
-            }`}
-          >
-            <Users size={24} />
+          <Link href="/groups" className={`${mobileBase} ${activePath === '/groups' ? mobileActive : mobileInactive}`}>
+            <Users size={22} />
             Skupine
           </Link>
-
-          <Link
-            href="/profile"
-            className={`flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors ${
-              activePath === '/profile'
-                ? 'text-blue-600'
-                : 'text-gray-400 hover:text-gray-900'
-            }`}
-          >
-            <UserCircle size={24} />
+          <Link href="/profile" className={`${mobileBase} ${activePath === '/profile' ? mobileActive : mobileInactive}`}>
+            <UserCircle size={22} />
             Profil
           </Link>
         </div>
