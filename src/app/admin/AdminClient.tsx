@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { RefreshCw, Link2, CheckCircle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { RefreshCw, Github, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 type Match = {
   id: string
@@ -22,9 +22,8 @@ const CRON_SECRET = 'fp2026secret'
 export default function AdminClient({ matches }: { matches: Match[] }) {
   const supabase = createClient()
 
-  const [mapLog, setMapLog] = useState<string[] | null>(null)
   const [syncLog, setSyncLog] = useState<string | null>(null)
-  const [loading, setLoading] = useState<'map' | 'sync' | null>(null)
+  const [loading, setLoading] = useState<'sync' | null>(null)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [scoreHome, setScoreHome] = useState('')
@@ -34,31 +33,7 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
 
   const [localMatches, setLocalMatches] = useState(matches)
 
-  // Korak 1: map-fixtures
-  const runMapFixtures = async () => {
-    setLoading('map')
-    setMapLog(null)
-    try {
-      const res = await fetch('/api/cron/map-fixtures', {
-        headers: { Authorization: `Bearer ${CRON_SECRET}` },
-      })
-      const data = await res.json()
-      const lines = [
-        ...(data.mapped ?? []).map((l: string) => `✅ ${l}`),
-        ...(data.unmapped ?? []).map((l: string) => `⚠️ ${l}`),
-        data.message ?? '',
-      ].filter(Boolean)
-      setMapLog(lines)
-      // Osveži seznam (api_football_id se je posodobil)
-      const { data: fresh } = await supabase.from('matches').select('*').order('match_time_utc')
-      if (fresh) setLocalMatches(fresh as Match[])
-    } catch (e) {
-      setMapLog([`❌ Napaka: ${e}`])
-    }
-    setLoading(null)
-  }
-
-  // Korak 2: sync-results
+  // Sync rezultatov iz openfootball
   const runSync = async () => {
     setLoading('sync')
     setSyncLog(null)
@@ -120,51 +95,39 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
 
   const pendingMatches = localMatches.filter(m => m.status !== 'Finished')
   const finishedMatches = localMatches.filter(m => m.status === 'Finished')
-  const mappedCount = localMatches.filter(m => m.api_football_id !== null).length
 
   return (
     <div className="space-y-6">
 
-      {/* Korak 1: Map Fixtures */}
+      {/* Vir podatkov */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-              <Link2 size={18} className="text-blue-600" />
-              Korak 1 — Poveži tekme z API-Football
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Enkratna akcija. Mapirano: {mappedCount}/{localMatches.length} tekem.
-            </p>
-          </div>
-          {mappedCount === localMatches.length && (
-            <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
-          )}
-        </div>
-        <button
-          onClick={runMapFixtures}
-          disabled={loading === 'map'}
-          className="w-full bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          <RefreshCw size={16} className={loading === 'map' ? 'animate-spin' : ''} />
-          {loading === 'map' ? 'Mapiram...' : 'Poženi mapiranje'}
-        </button>
-        {mapLog && (
-          <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs font-mono space-y-1 max-h-48 overflow-y-auto">
-            {mapLog.map((line, i) => <div key={i}>{line}</div>)}
-          </div>
-        )}
+        <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-1">
+          <Github size={18} className="text-gray-700" />
+          Vir rezultatov — openfootball (brezplačno)
+        </h3>
+        <p className="text-sm text-gray-500">
+          Rezultati se berejo iz{' '}
+          <a
+            href="https://github.com/openfootball/worldcup.json"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline"
+          >
+            openfootball/worldcup.json
+          </a>
+          . Brez API ključa. Posodablja se sproti med SP 2026.
+        </p>
       </div>
 
-      {/* Korak 2: Sync Results */}
+      {/* Sync Results */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div className="mb-3">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
             <RefreshCw size={18} className="text-emerald-600" />
-            Korak 2 — Sync rezultatov (avtomatsko vsakih 30 min)
+            Sync rezultatov (avtomatsko vsakih 30 min na Vercelu)
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Pridobi zaključene tekme iz API-Football in izračuna točke.
+            Zaključene: {finishedMatches.length} | Čaka: {pendingMatches.length}
           </p>
         </div>
         <button

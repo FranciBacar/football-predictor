@@ -1,11 +1,19 @@
+/**
+ * GET /api/cron/sync-results
+ *
+ * Brezplačen sync rezultatov SP 2026 iz openfootball GitHub repota.
+ * Brez API ključa. Podatki se posodabljajo sproti med turnirjem.
+ *
+ * Zahteva: Authorization: Bearer {CRON_SECRET}
+ */
+
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { SL_TO_API } from '@/lib/teamNameMap'
 
-const API_BASE = 'https://v3.football.api-sports.io'
-const WC_LEAGUE_ID = 1      // FIFA World Cup
-const WC_SEASON = 2026
+const OPENFOOTBALL_URL =
+  'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json'
 
-// Zaščita: samo avtoriziran klic (Vercel Cron ali ročni trigger)
 function isAuthorized(request: Request): boolean {
   const authHeader = request.headers.get('authorization')
   const secret = process.env.CRON_SECRET
@@ -13,15 +21,40 @@ function isAuthorized(request: Request): boolean {
   return authHeader === `Bearer ${secret}`
 }
 
-async function fetchFromAPI(endpoint: string) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    headers: {
-      'x-apisports-key': process.env.FOOTBALL_API_KEY!,
-    },
-    cache: 'no-store',
-  })
-  if (!res.ok) throw new Error(`API-Football error: ${res.status}`)
-  return res.json()
+// Normalizira ime ekipe za primerjavo (male črke, brez presledkov)
+function normalize(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]/g, '')
+}
+
+// Zgradi lookup: normalizirano EN ime → slovensko ime
+const EN_NORM_TO_SL: Record<string, string> = {}
+for (const [sl, en] of Object.entries(SL_TO_API)) {
+  EN_NORM_TO_SL[normalize(en)] = sl
+}
+
+// Dodatni aliasi za variante imen
+const EXTRA_ALIASES: Record<string, string> = {
+  'czechrepublic': 'Češka',
+  'czechia': 'Češka',
+  'unitedstates': 'ZDA',
+  'usa': 'ZDA',
+  'ivorycoast': 'Slonokoščena obala',
+  'cotedivoire': 'Slonokoščena obala',
+  'bosniaandherzegovina': 'Bosna in Hercegovina',
+  'bosnia': 'Bosna in Hercegovina',
+  'drcongodr': 'DR Kongo',
+  'democraticrepublicofthecongo': 'DR Kongo',
+  'capeverde': 'Zelenortski otoki',
+  'newzealand': 'Nova Zelandija',
+  'southkorea': 'Južna Koreja',
+  'korea': 'Južna Koreja',
+  'southafrica': 'Južna Afrika',
+  'saudiarabia': 'Savdska Arabija',
+}
+
+function apiNameToSl(apiName: string): string | null {
+  const norm = normalize(apiName)
+  return EN_NORM_TO_SL[norm] ?? EXTRA_ALIASES[norm] ?? null
 }
 
 export async function GET(request: Request) {
@@ -33,101 +66,93 @@ export async function GET(request: Request) {
   const results = { updated: 0, skipped: 0, errors: [] as string[] }
 
   try {
-    // 1. Poišči tekme v naši bazi, ki imajo api_football_id (že mapirane) in niso Finished
-    const { data: pendingMatches, error: dbError } = await supabase
-      .from('matches')
-      .select('id, api_football_id, home_team, away_team, match_time_utc, is_knockout, status')
-      .not('api_football_id', 'is', null)
-      .neq('status', 'Finished')
-      .lt('match_time_utc', new Date(Date.now() - 105 * 60 * 1000).toISOString()) // 105 min po začetku
+    // 1. Pridobi podatke iz openfootball
+    const res = await fetch(OPENFOOTBALL_URL, { cache: 'no-store' })
+    if (!res.ok) throw new Error(`openfootball fetch failed: ${res.status}`)
+    const data = await res.json()
 
-    if (dbError) throw new Error(dbError.message)
-    if (!pendingMatches || pendingMatches.length === 0) {
-      return NextResponse.json({ message: 'Ni tekem za posodobitev.', ...results })
+    // Filtriraj samo zaključene tekme (imajo score1 in score2)
+    const finishedMatches = (data.matches ?? []).filter(
+      (m: any) => m.score1 !== undefined && m.score2 !== undefined
+    )
+
+    if (finishedMatches.length === 0) {
+      return NextResponse.json({ message: 'Ni zaključenih tekem v viru.', ...results })
     }
 
-    // 2. Za vsako tekmo preveri status pri API-Football
-    for (const match of pendingMatches) {
-      try {
-        const data = await fetchFromAPI(
-          `/fixtures?id=${match.api_football_id}`
-        )
+    // 2. Pridobi naše tekme ki niso Finished
+    const { data: ourMatches, error: dbError } = await supabase
+      .from('matches')
+      .select('id, home_team, away_team, match_time_utc, is_knockout, status')
+      .neq('status', 'Finished')
 
-        const fixture = data.response?.[0]
-        if (!fixture) {
-          results.skipped++
-          continue
-        }
+    if (dbError) throw new Error(dbError.message)
+    if (!ourMatches || ourMatches.length === 0) {
+      return NextResponse.json({ message: 'Vse tekme so že zaključene.', ...results })
+    }
 
-        const statusShort = fixture.fixture?.status?.short
-        const goalsHome = fixture.goals?.home
-        const goalsAway = fixture.goals?.away
+    // 3. Za vsako zaključeno openfootball tekmo → poiščemo v naši bazi
+    for (const apiMatch of finishedMatches) {
+      const apiHome = apiNameToSl(apiMatch.team1)
+      const apiAway = apiNameToSl(apiMatch.team2)
 
-        // Statusi: FT = končana, AET = po podaljških, PEN = po penalih
-        const isFinished = ['FT', 'AET', 'PEN'].includes(statusShort)
-        const isInProgress = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'INT'].includes(statusShort)
+      if (!apiHome || !apiAway) {
+        results.skipped++
+        continue
+      }
 
-        if (isFinished && goalsHome !== null && goalsAway !== null) {
-          // Določi advancing_team za izločilne boje z remijem po 90 min
-          let actualAdvancingTeam: string | null = null
+      const apiDate = new Date(apiMatch.date)
 
-          if (match.is_knockout) {
-            const penHome = fixture.score?.penalty?.home
-            const penAway = fixture.score?.penalty?.away
-            const ftHome = fixture.score?.fulltime?.home
-            const ftAway = fixture.score?.fulltime?.away
+      // Poišči ujemajočo tekmo (isti ekipi + isti dan ±1 dan)
+      const ourMatch = ourMatches.find(m => {
+        const matchDate = new Date(m.match_time_utc)
+        const dayDiff = Math.abs(matchDate.getTime() - apiDate.getTime())
+        const within2Days = dayDiff < 2 * 24 * 60 * 60 * 1000
+        return m.home_team === apiHome && m.away_team === apiAway && within2Days
+      })
 
-            // Remi po 90 min → preveri penalties ali extra time
-            if (ftHome === ftAway) {
-              if (penHome !== null && penAway !== null) {
-                actualAdvancingTeam = penHome > penAway ? match.home_team : match.away_team
-              } else {
-                // Extra time winner
-                const etHome = fixture.score?.extratime?.home
-                const etAway = fixture.score?.extratime?.away
-                if (etHome !== null && etAway !== null && etHome !== etAway) {
-                  actualAdvancingTeam = etHome > etAway ? match.home_team : match.away_team
-                }
-              }
-            }
+      if (!ourMatch) {
+        results.skipped++
+        continue
+      }
+
+      // 4. Določi advancing_team za izločilne boje (penalti)
+      let actualAdvancingTeam: string | null = null
+      if (ourMatch.is_knockout) {
+        const ftHome = apiMatch.score1
+        const ftAway = apiMatch.score2
+        if (ftHome === ftAway) {
+          // Remi po 90 min — preveri penalty rezultat (score1p/score2p)
+          const penHome = apiMatch.score1p
+          const penAway = apiMatch.score2p
+          if (penHome !== undefined && penAway !== undefined) {
+            actualAdvancingTeam = penHome > penAway ? ourMatch.home_team : ourMatch.away_team
           }
-
-          // Posodobi tekmo v bazi (trigger samodejno izračuna točke!)
-          const { error: updateError } = await supabase
-            .from('matches')
-            .update({
-              status: 'Finished',
-              actual_score_home: goalsHome,
-              actual_score_away: goalsAway,
-              actual_advancing_team: actualAdvancingTeam,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', match.id)
-
-          if (updateError) {
-            results.errors.push(`Match ${match.id}: ${updateError.message}`)
-          } else {
-            results.updated++
-          }
-
-        } else if (isInProgress && match.status === 'Upcoming') {
-          // Posodobi status na In Progress
-          await supabase
-            .from('matches')
-            .update({ status: 'In Progress', updated_at: new Date().toISOString() })
-            .eq('id', match.id)
-
-        } else {
-          results.skipped++
         }
+      }
 
-      } catch (err) {
-        results.errors.push(`Match ${match.id}: ${String(err)}`)
+      // 5. Posodobi tekmo — trigger samodejno izračuna točke!
+      const { error: updateError } = await supabase
+        .from('matches')
+        .update({
+          status: 'Finished',
+          actual_score_home: apiMatch.score1,
+          actual_score_away: apiMatch.score2,
+          actual_advancing_team: actualAdvancingTeam,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', ourMatch.id)
+
+      if (updateError) {
+        results.errors.push(`${ourMatch.home_team} vs ${ourMatch.away_team}: ${updateError.message}`)
+      } else {
+        results.updated++
       }
     }
 
     return NextResponse.json({
-      message: `Sync zaključen.`,
+      message: `Sync zaključen. Vir: openfootball GitHub`,
+      zaključenihVViru: finishedMatches.length,
       ...results,
     })
 
