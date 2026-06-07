@@ -91,7 +91,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
             onClick={handleCreateGroup}
             disabled={isCreating || !newGroupName.trim()}
             className="w-full text-white font-medium py-2.5 rounded-lg disabled:opacity-50 transition-colors text-sm"
-            style={{ background: isCreating || !newGroupName.trim() ? '#aaa' : 'var(--goodish-green)' }}
+            style={{ background: isCreating || !newGroupName.trim() ? '#aaa' : 'var(--goodish-gradient)' }}
           >
             {isCreating ? 'Ustvarjam...' : 'Ustvari skupino'}
           </button>
@@ -167,7 +167,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                           key={m.id}
                           title={m.name}
                           className="w-8 h-8 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white text-xs font-bold"
-                          style={{ background: 'var(--goodish-green)', zIndex: 10 - i, marginLeft: i > 0 ? '-8px' : '0' }}
+                          style={{ background: 'var(--goodish-gradient)', zIndex: 10 - i, marginLeft: i > 0 ? '-8px' : '0' }}
                         >
                           {m.name.charAt(0).toUpperCase()}
                         </div>
@@ -202,7 +202,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                     <button
                       onClick={() => router.push(`/leaderboard?group=${group.id}`)}
                       className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-white text-sm font-medium transition-colors"
-                      style={{ background: 'var(--goodish-green)' }}
+                      style={{ background: 'var(--goodish-gradient)' }}
                     >
                       <BarChart2 size={15} />
                       Lestvica
@@ -228,7 +228,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                           {m.avatar_url ? (
                             <img src={m.avatar_url} alt={m.name} className="w-8 h-8 rounded-full object-cover" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'var(--goodish-green)' }}>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: 'var(--goodish-gradient)' }}>
                               {m.name.charAt(0).toUpperCase()}
                             </div>
                           )}

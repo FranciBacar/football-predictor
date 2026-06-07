@@ -3,10 +3,11 @@
 :root {
   --background: #ffffff;
   --foreground: #1a1a1a;
-  --goodish-green: #6DBF4A;
-  --goodish-green-dark: #52a333;
-  --goodish-green-light: #eef8e8;
-  --goodish-gray: #f4f6f2;
+  --goodish-green: #0f766e;
+  --goodish-green-dark: #0a5c55;
+  --goodish-green-light: #e6faf8;
+  --goodish-gradient: linear-gradient(115deg, #0f766e 0%, #2dd4bf 100%);
+  --goodish-gray: #f4f6f5;
 }
 
 @theme inline {

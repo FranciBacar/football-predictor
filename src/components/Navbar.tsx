@@ -1,15 +1,15 @@
 import Link from 'next/link'
 import { Trophy, Users, BarChart2, UserCircle } from 'lucide-react'
 
-const GOODISH_GREEN = '#6DBF4A'
+const GOODISH_GREEN = '#0f766e'
 
 export default function Navbar({ activePath }: { activePath: string }) {
   const linkBase = 'py-4 flex items-center gap-2 font-medium border-b-2 transition-colors'
-  const active = `border-[#6DBF4A] text-[#6DBF4A]`
+  const active = `border-[#0f766e] text-[#0f766e]`
   const inactive = 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
 
   const mobileBase = 'flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium transition-colors'
-  const mobileActive = 'text-[#6DBF4A]'
+  const mobileActive = 'text-[#0f766e]'
   const mobileInactive = 'text-gray-400 hover:text-gray-900'
 
   return (

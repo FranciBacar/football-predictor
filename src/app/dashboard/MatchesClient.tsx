@@ -132,10 +132,11 @@ export default function MatchesClient({
             key={stage}
             onClick={() => setActiveStage(stage)}
             className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-              activeStage === stage 
-                ? 'bg-blue-600 text-white shadow-md' 
+              activeStage === stage
+                ? 'text-white shadow-md'
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
+            style={activeStage === stage ? { background: 'var(--goodish-gradient)' } : {}}
           >
             {STAGE_LABELS[stage] ?? stage}
           </button>
@@ -195,20 +196,26 @@ export default function MatchesClient({
                 </div>
 
                 {needsAdvancingTeam && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm">
-                    <p className="text-blue-800 font-medium mb-2">Ker si napovedal remi v izločilnih bojih, kdo napreduje (po podaljških/penalih)?</p>
+                  <div className="mt-4 p-3 rounded-lg text-sm" style={{ background: 'var(--goodish-green-light)', border: '1px solid #99e6dd' }}>
+                    <p className="font-medium mb-2" style={{ color: 'var(--goodish-green)' }}>Ker si napovedal remi v izločilnih bojih, kdo napreduje?</p>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => handleAdvancingChange(match.id, match.home_team)}
                         disabled={isLocked}
-                        className={`flex-1 py-2 rounded-md font-medium transition-colors ${pred.pred_advancing_team === match.home_team ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-blue-700'}`}
+                        className="flex-1 py-2 rounded-md font-medium transition-colors text-sm"
+                        style={pred.pred_advancing_team === match.home_team
+                          ? { background: 'var(--goodish-gradient)', color: 'white' }
+                          : { background: 'white', border: '1px solid #99e6dd', color: 'var(--goodish-green)' }}
                       >
                         {match.home_team}
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleAdvancingChange(match.id, match.away_team)}
                         disabled={isLocked}
-                        className={`flex-1 py-2 rounded-md font-medium transition-colors ${pred.pred_advancing_team === match.away_team ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-blue-700'}`}
+                        className="flex-1 py-2 rounded-md font-medium transition-colors text-sm"
+                        style={pred.pred_advancing_team === match.away_team
+                          ? { background: 'var(--goodish-gradient)', color: 'white' }
+                          : { background: 'white', border: '1px solid #99e6dd', color: 'var(--goodish-green)' }}
                       >
                         {match.away_team}
                       </button>
@@ -221,7 +228,7 @@ export default function MatchesClient({
                     <button 
                       onClick={() => savePrediction(match.id)}
                       disabled={savingId === match.id || pred.pred_score_home === '' || pred.pred_score_away === '' || (needsAdvancingTeam && !pred.pred_advancing_team)}
-                      className="bg-gray-900 text-white px-6 py-2 rounded-lg font-medium text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors w-full md:w-auto"
+                      className="text-white px-6 py-2 rounded-lg font-medium text-sm disabled:opacity-50 transition-colors w-full md:w-auto" style={{ background: 'var(--goodish-gradient)' }}
                     >
                       {savingId === match.id ? 'Shranjujem...' : 'Shrani napoved'}
                     </button>
