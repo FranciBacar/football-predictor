@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { Users, Plus, KeyRound, Copy, Check, Link, BarChart2, ChevronDown, ChevronUp } from 'lucide-react'
-import Image from 'next/image'
+import { Users, Plus, KeyRound, Copy, Check, BarChart2, ChevronDown, ChevronUp, Trash2, LogOut } from 'lucide-react'
 
 type Member = { id: string; name: string; avatar_url: string | null }
 type Group = { id: string; name: string; invite_code: string; creator_user_id: string; members?: Member[] }
@@ -20,6 +19,8 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
   const [isJoining, setIsJoining] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   const getInviteUrl = (code: string) =>
     typeof window !== 'undefined'
@@ -45,6 +46,22 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
     setGroups(prev => [...prev, { ...newGroup, members: [] }])
     setNewGroupName('')
     setIsCreating(false)
+  }
+
+  const handleDeleteGroup = async (groupId: string) => {
+    setDeleting(groupId)
+    const { error } = await supabase.from('groups').delete().eq('id', groupId)
+    if (error) { alert('Napaka pri brisanju: ' + error.message); setDeleting(null); return }
+    setGroups(prev => prev.filter(g => g.id !== groupId))
+    setConfirmDelete(null)
+    setDeleting(null)
+  }
+
+  const handleLeaveGroup = async (groupId: string) => {
+    const { error } = await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', userId)
+    if (error) { alert('Napaka: ' + error.message); return }
+    setGroups(prev => prev.filter(g => g.id !== groupId))
+    setConfirmDelete(null)
   }
 
   const handleJoinGroup = async () => {
@@ -202,7 +219,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                     <button
                       onClick={() => router.push(`/leaderboard?group=${group.id}`)}
                       className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-white text-sm font-medium transition-colors"
-                      style={{ background: 'var(--goodish-gradient)' }}
+                      style={{ background: 'linear-gradient(115deg,#0f766e 0%,#2dd4bf 100%)' }}
                     >
                       <BarChart2 size={15} />
                       Lestvica
@@ -215,7 +232,40 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                       Člani
                       {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </button>
+                    <button
+                      onClick={() => setConfirmDelete(confirmDelete === group.id ? null : group.id)}
+                      className="flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 hover:bg-red-50 transition-colors"
+                      title={isCreator ? 'Izbriši skupino' : 'Zapusti skupino'}
+                    >
+                      {isCreator ? <Trash2 size={15} className="text-red-400" /> : <LogOut size={15} className="text-gray-400" />}
+                    </button>
                   </div>
+
+                  {/* Delete/Leave confirmation */}
+                  {confirmDelete === group.id && (
+                    <div className="mt-3 p-3 rounded-xl border border-red-100 bg-red-50">
+                      <p className="text-sm font-semibold text-red-700 mb-2">
+                        {isCreator
+                          ? '⚠️ Izbriši skupino? Vsi člani bodo odstranjeni.'
+                          : '⚠️ Zapustiti skupino?'}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setConfirmDelete(null)}
+                          className="flex-1 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium bg-white hover:bg-gray-50"
+                        >
+                          Prekliči
+                        </button>
+                        <button
+                          onClick={() => isCreator ? handleDeleteGroup(group.id) : handleLeaveGroup(group.id)}
+                          disabled={deleting === group.id}
+                          className="flex-1 py-1.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {deleting === group.id ? 'Brišem...' : isCreator ? 'Da, izbriši' : 'Da, zapusti'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Expanded members list */}
