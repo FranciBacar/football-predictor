@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { RefreshCw, Github, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { RefreshCw, Globe, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 type Match = {
   id: string
@@ -102,7 +102,7 @@ export default function AdminClient({ matches }: { matches: Match[] }) {
       {/* Vir podatkov */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-1">
-          <Github size={18} className="text-gray-700" />
+          <Globe size={18} className="text-gray-700" />
           Vir rezultatov — openfootball (brezplačno)
         </h3>
         <p className="text-sm text-gray-500">
