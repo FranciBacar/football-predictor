@@ -1,5 +1,9 @@
 import './globals.css'
 import type { Metadata } from 'next'
+import { Geist, Geist_Mono } from 'next/font/google'
+
+const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist' })
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
   title: 'Goodish Football Predictor ⚽',
@@ -9,30 +13,21 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="sl">
-      <body className="min-h-screen flex flex-col" style={{ background: 'var(--goodish-gray)', color: 'var(--foreground)' }}>
+      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex flex-col`}
+        style={{ background: 'var(--page)', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
         <main className="flex-1 flex flex-col">
           {children}
         </main>
 
-        {/* Footer */}
-        <footer className="w-full border-t border-gray-200 bg-white py-4 px-6 mt-auto pb-20 md:pb-4">
-          <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <img
-                src="https://goodish.agency/wp-content/uploads/2023/06/goodish-logotype-full-color-rgb-1024x251.png"
-                alt="Goodish"
-                className="h-5 object-contain"
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <span>⚽ SP 2026 Predictor</span>
-              <a
-                href="https://goodish.agency"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium hover:underline"
-                style={{ color: 'var(--goodish-green)' }}
-              >
+        <footer className="w-full border-t pb-20 md:pb-4" style={{ borderColor: 'var(--line)', background: 'white' }}>
+          <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+            <span style={{ fontWeight: 700, fontSize: 18, color: '#1a1a1a', letterSpacing: '-0.045em' }}>
+              goodish<span style={{ color: '#0f766e' }}>.</span>
+            </span>
+            <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'right', lineHeight: 1.4 }}>
+              SP 2026 Predictor<br />
+              <a href="https://goodish.agency" target="_blank" rel="noopener noreferrer"
+                style={{ color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>
                 goodish.agency →
               </a>
             </div>
