@@ -1,0 +1,58 @@
+// Mapping: Slovensko ime → API-Football angleško ime
+// Uporablja se za ujemanje tekem med našo bazo in API-Football
+
+export const SL_TO_API: Record<string, string> = {
+  'Mehika':                'Mexico',
+  'Južna Koreja':          'South Korea',
+  'Češka':                 'Czech Republic',
+  'Južna Afrika':          'South Africa',
+  'Kanada':                'Canada',
+  'Bosna in Hercegovina':  'Bosnia',
+  'Švica':                 'Switzerland',
+  'Katar':                 'Qatar',
+  'Brazilija':             'Brazil',
+  'Maroko':                'Morocco',
+  'Haiti':                 'Haiti',
+  'Škotska':               'Scotland',
+  'ZDA':                   'United States',
+  'Turčija':               'Turkey',
+  'Avstralija':            'Australia',
+  'Paragvaj':              'Paraguay',
+  'Nemčija':               'Germany',
+  'Ekvador':               'Ecuador',
+  'Slonokoščena obala':    'Ivory Coast',
+  'Curaçao':               'Curacao',
+  'Nizozemska':            'Netherlands',
+  'Japonska':              'Japan',
+  'Švedska':               'Sweden',
+  'Tunizija':              'Tunisia',
+  'Belgija':               'Belgium',
+  'Egipt':                 'Egypt',
+  'Iran':                  'Iran',
+  'Nova Zelandija':        'New Zealand',
+  'Španija':               'Spain',
+  'Zelenortski otoki':     'Cape Verde',
+  'Savdska Arabija':       'Saudi Arabia',
+  'Urugvaj':               'Uruguay',
+  'Francija':              'France',
+  'Senegal':               'Senegal',
+  'Irak':                  'Iraq',
+  'Norveška':              'Norway',
+  'Argentina':             'Argentina',
+  'Alžirija':              'Algeria',
+  'Avstrija':              'Austria',
+  'Jordanija':             'Jordan',
+  'Portugalska':           'Portugal',
+  'DR Kongo':              'DR Congo',
+  'Uzbekistan':            'Uzbekistan',
+  'Kolumbija':             'Colombia',
+  'Anglija':               'England',
+  'Hrvaška':               'Croatia',
+  'Gana':                  'Ghana',
+  'Panama':                'Panama',
+}
+
+// Obratni mapping: API angleško ime → slovensko ime
+export const API_TO_SL: Record<string, string> = Object.fromEntries(
+  Object.entries(SL_TO_API).map(([sl, en]) => [en, sl])
+)
