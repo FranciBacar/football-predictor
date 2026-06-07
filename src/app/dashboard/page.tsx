@@ -1,18 +1,29 @@
 import { createClient } from '@/utils/supabase/server'
 import MatchesClient from './MatchesClient'
+import SpecialPredictions from './SpecialPredictions'
 import Navbar from '@/components/Navbar'
 import { redirect } from 'next/navigation'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { tab } = await searchParams
+  const activeTab = tab === 'posebne' ? 'posebne' : 'napovedi'
 
   const { data: matches } = await supabase
     .from('matches').select('*').order('match_time_utc', { ascending: true })
 
   const { data: predictions } = await supabase
     .from('predictions').select('*').eq('user_id', user.id)
+
+  const { data: specialPreds } = await supabase
+    .from('special_predictions').select('*').eq('user_id', user.id)
 
   const firstName = (user.user_metadata?.full_name ?? user.user_metadata?.name ?? 'Navijač').split(' ')[0]
   const avatar = user.user_metadata?.avatar_url ?? null
@@ -44,11 +55,48 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <MatchesClient
-          matches={matches ?? []}
-          initialPredictions={predictions ?? []}
-          userId={user.id}
-        />
+        {/* Main tab switcher */}
+        <div style={{ display:'flex', gap:8, padding:'0 16px 16px' }}>
+          <a
+            href="/dashboard"
+            style={{
+              padding:'8px 18px', borderRadius:999, fontSize:13.5, fontWeight:600,
+              textDecoration:'none', transition:'all .15s',
+              background: activeTab === 'napovedi' ? 'linear-gradient(115deg,#0f766e 0%,#2dd4bf 100%)' : '#fff',
+              color: activeTab === 'napovedi' ? '#fff' : '#374151',
+              border: activeTab === 'napovedi' ? 'none' : '1px solid #e5e7eb',
+              boxShadow: activeTab === 'napovedi' ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
+            }}
+          >
+            ⚽ Napovedi tekem
+          </a>
+          <a
+            href="/dashboard?tab=posebne"
+            style={{
+              padding:'8px 18px', borderRadius:999, fontSize:13.5, fontWeight:600,
+              textDecoration:'none', transition:'all .15s',
+              background: activeTab === 'posebne' ? 'linear-gradient(115deg,#0f766e 0%,#2dd4bf 100%)' : '#fff',
+              color: activeTab === 'posebne' ? '#fff' : '#374151',
+              border: activeTab === 'posebne' ? 'none' : '1px solid #e5e7eb',
+              boxShadow: activeTab === 'posebne' ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
+            }}
+          >
+            🔮 Posebne napovedi
+          </a>
+        </div>
+
+        {activeTab === 'napovedi' ? (
+          <MatchesClient
+            matches={matches ?? []}
+            initialPredictions={predictions ?? []}
+            userId={user.id}
+          />
+        ) : (
+          <SpecialPredictions
+            userId={user.id}
+            initialPreds={specialPreds ?? []}
+          />
+        )}
       </div>
     </div>
   )
