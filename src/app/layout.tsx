@@ -24,19 +24,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <footer className="w-full border-t pb-20 md:pb-4" style={{ borderColor: 'var(--line)', background: 'white' }}>
           <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-            <span style={{ fontWeight: 700, fontSize: 18, color: '#1a1a1a', letterSpacing: '-0.045em' }}>
-              goodish<span style={{ color: '#0f766e' }}>.</span>
-            </span>
+            <a href="https://goodish.agency" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', lineHeight: 0 }}>
+              <img
+                src="https://goodish.agency/wp-content/uploads/2023/06/goodish-logotype-full-color-rgb-1024x251.png"
+                alt="Goodish"
+                style={{ height: 22, objectFit: 'contain', filter: 'hue-rotate(0deg) saturate(1)' }}
+              />
+            </a>
             <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'right', lineHeight: 1.7 }}>
               SP 2026 Predictor<br />
               <a href="/pravila" style={{ color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>Pravila igre</a>
               {' · '}
               <a href="/zasebnost" style={{ color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>Zasebnost</a>
-              {' · '}
-              <a href="https://goodish.agency" target="_blank" rel="noopener noreferrer"
-                style={{ color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>
-                goodish.agency →
-              </a>
             </div>
           </div>
         </footer>

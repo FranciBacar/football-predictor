@@ -11,6 +11,21 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
+      // Preveri ali je nov uporabnik (ni dokončal onboardinga)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('onboarding_completed')
+          .eq('id', user.id)
+          .single()
+
+        // Nov uporabnik (onboarding_completed = false) → pokaži pravila
+        if (profile && !profile.onboarding_completed) {
+          const encodedNext = encodeURIComponent(next)
+          return NextResponse.redirect(`${origin}/pravila?onboarding=1&next=${encodedNext}`)
+        }
+      }
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
