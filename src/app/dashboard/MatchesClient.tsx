@@ -126,12 +126,12 @@ export default function MatchesClient({
   return (
     <div className="space-y-4">
       
-      <div className="flex overflow-x-auto gap-2 pb-2 mb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="flex flex-wrap gap-2 mb-4">
         {availableStages.map(stage => (
           <button
             key={stage}
             onClick={() => setActiveStage(stage)}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${
               activeStage === stage
                 ? 'text-white shadow-md'
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
