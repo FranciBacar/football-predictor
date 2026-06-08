@@ -29,13 +29,13 @@ export default async function LeaderboardPage({
 
   // Mergaj: tisti brez točk dobijo rank = 0 (sortiramo spodaj)
   const pointsMap = new Map((globalRpc ?? []).map((e: any) => [e.user_id, e]))
-  const globalData = (allUsers ?? []).map((u, i) => {
+  const globalData: any[] = (allUsers ?? []).map((u) => {
     const entry = pointsMap.get(u.id)
     return entry ?? {
       user_id: u.id,
       name: u.name,
-      avatar_url: u.avatar_url,
-      avatar_emoji: u.avatar_emoji,
+      avatar_url: u.avatar_url ?? null,
+      avatar_emoji: u.avatar_emoji ?? null,
       total_points: 0,
       exact_predictions: 0,
       rank: 0,
