@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Trophy, Users, BarChart2, UserCircle } from 'lucide-react'
-
-const GOODISH_GREEN = '#0f766e'
+import NavbarProfileSwitcher from './NavbarProfileSwitcher'
 
 export default function Navbar({ activePath }: { activePath: string }) {
   const linkBase = 'py-4 flex items-center gap-2 font-medium border-b-2 transition-colors'
@@ -29,10 +28,13 @@ export default function Navbar({ activePath }: { activePath: string }) {
             <Users size={18} />
             Skupine
           </Link>
-          <Link href="/profile" className={`${linkBase} ${activePath === '/profile' ? active : inactive} ml-auto`}>
+          <Link href="/profile" className={`${linkBase} ${activePath === '/profile' ? active : inactive}`}>
             <UserCircle size={18} />
             Profil
           </Link>
+          <div className="ml-auto">
+            <NavbarProfileSwitcher />
+          </div>
         </div>
       </nav>
 

@@ -2,6 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import CookieBanner from '@/components/CookieBanner'
+import { ProfileProvider } from '@/context/ProfileContext'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
@@ -16,11 +17,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="sl">
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex flex-col`}
         style={{ background: 'var(--page)', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
+        <ProfileProvider>
         <main className="flex-1 flex flex-col">
           {children}
         </main>
 
         <CookieBanner />
+        </ProfileProvider>
 
         <footer className="w-full border-t pb-20 md:pb-4" style={{ borderColor: 'var(--line)', background: 'white' }}>
           <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">

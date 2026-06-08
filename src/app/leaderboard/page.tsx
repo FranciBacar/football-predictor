@@ -20,6 +20,35 @@ export default async function LeaderboardPage({
   // Pridobi globalno lestvico
   const { data: globalData } = await supabase.rpc('get_global_leaderboard')
 
+  // Kids lestvica — samo is_kid = true uporabniki
+  const { data: kidsRaw } = await supabase
+    .from('users')
+    .select('id, name, avatar_emoji')
+    .eq('is_kid', true)
+
+  // Za vsak kid izračunaj točke
+  const kidsWithPoints = await Promise.all(
+    (kidsRaw ?? []).map(async (kid) => {
+      const { data: preds } = await supabase
+        .from('predictions')
+        .select('earned_points')
+        .eq('user_id', kid.id)
+      const { data: special } = await supabase
+        .from('special_predictions')
+        .select('earned_points')
+        .eq('user_id', kid.id)
+      const total = [
+        ...(preds ?? []).map(p => p.earned_points ?? 0),
+        ...(special ?? []).map(s => s.earned_points ?? 0),
+      ].reduce((a, b) => a + b, 0)
+      const exact = (preds ?? []).filter(p => p.earned_points === 3 || p.earned_points === 6).length
+      return { user_id: kid.id, name: kid.name, avatar_url: null, avatar_emoji: kid.avatar_emoji, total_points: total, exact_predictions: exact, rank: 0 }
+    })
+  )
+  const kidsData = kidsWithPoints
+    .sort((a, b) => b.total_points - a.total_points || b.exact_predictions - a.exact_predictions)
+    .map((k, i) => ({ ...k, rank: i + 1 }))
+
   // Pridobi skupin, v katerih je prijavljen uporabnik
   const { data: memberships } = await supabase
     .from('group_members')
@@ -49,6 +78,7 @@ export default async function LeaderboardPage({
 
         <LeaderboardClient
           globalData={globalData ?? []}
+          kidsData={kidsData}
           groups={groups}
           currentUserId={user.id}
           initialGroupId={groupId ?? null}

@@ -23,9 +23,10 @@ const MEDAL_COLORS: Record<number, string> = {
 }
 
 export default function LeaderboardClient({
-  globalData, groups, currentUserId, initialGroupId,
+  globalData, kidsData, groups, currentUserId, initialGroupId,
 }: {
   globalData: LeaderboardEntry[]
+  kidsData: LeaderboardEntry[]
   groups: Group[]
   currentUserId: string
   initialGroupId: string | null
@@ -46,12 +47,15 @@ export default function LeaderboardClient({
 
   const handleTab = async (tabId: string) => {
     setActiveTab(tabId)
-    if (tabId !== 'global') await loadGroup(tabId)
+    if (tabId !== 'global' && tabId !== 'kids') await loadGroup(tabId)
   }
 
-  useState(() => { if (initialTab !== 'global') loadGroup(initialTab) })
+  useState(() => { if (initialTab !== 'global' && initialTab !== 'kids') loadGroup(initialTab) })
 
-  const entries: LeaderboardEntry[] = activeTab === 'global' ? globalData : (groupData[activeTab] ?? [])
+  const entries: LeaderboardEntry[] =
+    activeTab === 'global' ? globalData :
+    activeTab === 'kids' ? kidsData :
+    (groupData[activeTab] ?? [])
 
   const tabStyle = (isActive: boolean) => isActive
     ? { background: 'linear-gradient(115deg, #0f766e 0%, #2dd4bf 100%)', color: '#ffffff' }
@@ -70,6 +74,11 @@ export default function LeaderboardClient({
           <Trophy size={14} />
           Globalna
         </button>
+        {kidsData.length > 0 && (
+          <button onClick={() => handleTab('kids')} className={tabClass(activeTab === 'kids')} style={tabStyle(activeTab === 'kids')}>
+            👦 Otroci
+          </button>
+        )}
         {groups.map(group => (
           <button key={group.id} onClick={() => handleTab(group.id)} className={tabClass(activeTab === group.id)} style={tabStyle(activeTab === group.id)}>
             {group.name}
@@ -106,7 +115,11 @@ export default function LeaderboardClient({
                   )}
                 </div>
                 <div className="flex items-center gap-3 min-w-0">
-                  {entry.avatar_url ? (
+                  {(entry as any).avatar_emoji ? (
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-2xl bg-gray-50 border border-gray-100">
+                      {(entry as any).avatar_emoji}
+                    </div>
+                  ) : entry.avatar_url ? (
                     <Image src={entry.avatar_url} alt={entry.name} width={36} height={36} className="rounded-full flex-shrink-0 border border-gray-200" />
                   ) : (
                     <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm" style={{ background: 'var(--goodish-gradient)' }}>

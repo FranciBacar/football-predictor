@@ -1,6 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import MatchesClient from './MatchesClient'
-import SpecialPredictions from './SpecialPredictions'
+import DashboardWrapper from './DashboardWrapper'
 import Navbar from '@/components/Navbar'
 import { redirect } from 'next/navigation'
 
@@ -85,18 +84,13 @@ export default async function DashboardPage({
           </a>
         </div>
 
-        {activeTab === 'napovedi' ? (
-          <MatchesClient
-            matches={matches ?? []}
-            initialPredictions={predictions ?? []}
-            userId={user.id}
-          />
-        ) : (
-          <SpecialPredictions
-            userId={user.id}
-            initialPreds={specialPreds ?? []}
-          />
-        )}
+        <DashboardWrapper
+          parentUserId={user.id}
+          matches={matches ?? []}
+          initialPredictions={predictions ?? []}
+          specialPreds={specialPreds ?? []}
+          activeTab={activeTab}
+        />
       </div>
     </div>
   )
