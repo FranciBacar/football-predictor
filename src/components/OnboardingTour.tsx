@@ -7,9 +7,8 @@ const STORAGE_KEY = 'onboarding_done_v1'
 type Step = {
   title: string
   description: string
-  // CSS selector za element ki ga highlightamo
   selector: string
-  position: 'top' | 'bottom' | 'left' | 'right'
+  position: 'top' | 'bottom' | 'center'
 }
 
 const STEPS: Step[] = [
@@ -23,13 +22,13 @@ const STEPS: Step[] = [
     title: '🔮 Posebne napovedi',
     description: 'Napovej zmagovalca SP, najboljšega strelca, MVP-ja in zmagovalce skupin za bonus točke.',
     selector: '[data-tour="special-tab"]',
-    position: 'bottom',
+    position: 'center',
   },
   {
     title: '👥 Preklop profila',
     description: 'Tukaj preklopljaš med svojim profilom in profili otrok. Ko izbereš otroka, se napovedi shranijo njemu.',
     selector: '[data-tour="profile-switcher"]',
-    position: 'bottom',
+    position: 'center',
   },
   {
     title: '👤 Dodaj otroka',
@@ -82,50 +81,38 @@ export default function OnboardingTour() {
 
   // Izračunaj pozicijo tooltipa glede na target element
   const getTooltipStyle = (): React.CSSProperties => {
-    if (!targetRect) {
-      return {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 10001,
-      }
-    }
-
-    const pad = 14
-    const tooltipW = 300
-
-    if (current.position === 'bottom') {
-      return {
-        position: 'fixed',
-        top: targetRect.bottom + pad,
-        left: Math.min(
-          Math.max(targetRect.left + targetRect.width / 2 - tooltipW / 2, 16),
-          window.innerWidth - tooltipW - 16
-        ),
-        width: tooltipW,
-        zIndex: 10001,
-      }
-    }
-    if (current.position === 'top') {
-      return {
-        position: 'fixed',
-        bottom: window.innerHeight - targetRect.top + pad,
-        left: Math.min(
-          Math.max(targetRect.left + targetRect.width / 2 - tooltipW / 2, 16),
-          window.innerWidth - tooltipW - 16
-        ),
-        width: tooltipW,
-        zIndex: 10001,
-      }
-    }
-    return {
+    const tooltipW = Math.min(300, window.innerWidth - 32)
+    const pad = 12
+    const centered: React.CSSProperties = {
       position: 'fixed',
       top: '50%',
       left: '50%',
       transform: 'translate(-50%, -50%)',
+      width: tooltipW,
       zIndex: 10001,
     }
+
+    if (!targetRect || current.position === 'center') return centered
+
+    const centerX = Math.min(
+      Math.max(targetRect.left + targetRect.width / 2 - tooltipW / 2, 16),
+      window.innerWidth - tooltipW - 16
+    )
+
+    if (current.position === 'bottom') {
+      const top = targetRect.bottom + pad
+      // Če ni dovolj prostora spodaj, pokaži sredinsko
+      if (top + 220 > window.innerHeight) return centered
+      return { position: 'fixed', top, left: centerX, width: tooltipW, zIndex: 10001 }
+    }
+
+    if (current.position === 'top') {
+      const bottom = window.innerHeight - targetRect.top + pad
+      if (bottom + 220 > window.innerHeight) return centered
+      return { position: 'fixed', bottom, left: centerX, width: tooltipW, zIndex: 10001 }
+    }
+
+    return centered
   }
 
   return (
