@@ -54,18 +54,18 @@ export default function LeaderboardClient({
     const pointsMap = new Map((rpcData ?? []).map((e: any) => [e.user_id, e]))
     const allMembers = (members ?? []).map((m: any) => m.users).filter(Boolean)
 
-    const merged: LeaderboardEntry[] = (allMembers as any[]).map((u: any) => {
+    const merged = ((allMembers as any[]).map((u: any) => {
       const entry = pointsMap.get(u.id)
-      return entry ?? {
+      return (entry ?? {
         user_id: u.id,
         name: u.name,
-        avatar_url: u.avatar_url,
-        avatar_emoji: u.avatar_emoji,
+        avatar_url: u.avatar_url ?? null,
+        avatar_emoji: u.avatar_emoji ?? null,
         total_points: 0,
         exact_predictions: 0,
         rank: 0,
-      }
-    })
+      }) as LeaderboardEntry
+    }))
     merged.sort((a, b) => b.total_points - a.total_points || b.exact_predictions - a.exact_predictions || a.name.localeCompare(b.name))
     merged.forEach((e, i) => { e.rank = i + 1 })
 
