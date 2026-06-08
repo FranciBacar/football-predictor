@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import CookieBanner from '@/components/CookieBanner'
 import { ProfileProvider } from '@/context/ProfileContext'
+import PostHogIdentify from '@/components/PostHogIdentify'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex flex-col`}
         style={{ background: 'var(--page)', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
         <ProfileProvider>
+        <PostHogIdentify />
         <main className="flex-1 flex flex-col">
           {children}
         </main>
