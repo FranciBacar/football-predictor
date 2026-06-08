@@ -42,17 +42,19 @@ export default function LeaderboardClient({
     if (groupData[groupId]) return
     setLoading(true)
 
-    // Fetch točke + vse člane vzporedno
-    const [{ data: rpcData }, { data: members }] = await Promise.all([
+    // Fetch točke in člane vzporedno
+    const [{ data: rpcData }, { data: memberRows }] = await Promise.all([
       supabase.rpc('get_group_leaderboard', { p_group_id: groupId }),
-      supabase
-        .from('group_members')
-        .select('users(id, name, avatar_url, avatar_emoji)')
-        .eq('group_id', groupId),
+      supabase.from('group_members').select('user_id').eq('group_id', groupId),
     ])
 
+    const userIds = (memberRows ?? []).map((m: any) => m.user_id)
+    const { data: userRows } = userIds.length > 0
+      ? await supabase.from('users').select('id, name, avatar_url, avatar_emoji').in('id', userIds)
+      : { data: [] }
+
     const pointsMap = new Map((rpcData ?? []).map((e: any) => [e.user_id, e]))
-    const allMembers = (members ?? []).map((m: any) => m.users).filter(Boolean)
+    const allMembers = userRows ?? []
 
     const merged = ((allMembers as any[]).map((u: any) => {
       const entry = pointsMap.get(u.id)
