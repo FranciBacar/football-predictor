@@ -54,7 +54,7 @@ export default function LeaderboardClient({
     const pointsMap = new Map((rpcData ?? []).map((e: any) => [e.user_id, e]))
     const allMembers = (members ?? []).map((m: any) => m.users).filter(Boolean)
 
-    const merged: LeaderboardEntry[] = allMembers.map((u: any) => {
+    const merged: LeaderboardEntry[] = (allMembers as any[]).map((u: any) => {
       const entry = pointsMap.get(u.id)
       return entry ?? {
         user_id: u.id,
