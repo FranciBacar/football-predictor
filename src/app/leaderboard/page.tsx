@@ -20,11 +20,12 @@ export default async function LeaderboardPage({
   // Pridobi globalno lestvico
   const { data: globalRpc } = await supabase.rpc('get_global_leaderboard')
 
-  // Vsi uporabniki (za prikaz z 0 točkami)
+  // Vsi uporabniki na globalni lestvici (is_global_opt_in = true, ni otrok)
   const { data: allUsers } = await supabase
     .from('users')
     .select('id, name, avatar_url, avatar_emoji, is_kid, is_underage')
     .eq('is_kid', false)
+    .eq('is_global_opt_in', true)
     .order('name', { ascending: true })
 
   // Mergaj: tisti brez točk dobijo rank = 0 (sortiramo spodaj)
