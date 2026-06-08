@@ -30,7 +30,7 @@ export default async function LeaderboardPage({
     memberships
       ?.map((m) => m.groups)
       .filter(Boolean)
-      .map((g) => g as { id: string; name: string }) ?? []
+      .map((g) => g as unknown as { id: string; name: string }) ?? []
 
   return (
     <div className="min-h-screen pb-20 md:pb-0 pt-0 md:pt-16" style={{ background: 'var(--page)' }}>
