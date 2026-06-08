@@ -20,11 +20,11 @@ export default async function LeaderboardPage({
   // Pridobi globalno lestvico
   const { data: globalData } = await supabase.rpc('get_global_leaderboard')
 
-  // Kids lestvica — samo is_kid = true uporabniki
+  // Kids lestvica — is_kid = true (dodani s strani starša) ALI is_underage = true (sami prijavili)
   const { data: kidsRaw } = await supabase
     .from('users')
-    .select('id, name, avatar_emoji')
-    .eq('is_kid', true)
+    .select('id, name, avatar_emoji, is_kid')
+    .or('is_kid.eq.true,is_underage.eq.true')
 
   // Za vsak kid izračunaj točke
   const kidsWithPoints = await Promise.all(
