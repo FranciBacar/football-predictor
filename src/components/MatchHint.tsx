@@ -6,8 +6,9 @@
  * Prikaži SAMO ko je tekma odprta (status === 'Upcoming').
  */
 
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { getTeam } from '@/lib/teamData';
+// SegBar removed — no longer used after removing Podrobnosti accordion
 
 export type Probs = { home: number; draw: number; away: number }; // %, vsota ~100
 
@@ -35,26 +36,6 @@ function consensus(d: MatchHintData): Probs {
   };
 }
 
-function SegBar({ p, height = 9 }: { p: Probs; height?: number }) {
-  return (
-    <div style={{ display: 'flex', width: '100%', gap: 3, height }}>
-      {[
-        { pct: p.home, color: PC.home },
-        { pct: p.draw, color: PC.draw },
-        { pct: p.away, color: PC.away },
-      ].map((s, i) => (
-        <div
-          key={i}
-          style={{
-            flexGrow: s.pct, flexBasis: 0, minWidth: 4,
-            background: s.color, borderRadius: 999,
-            transition: 'flex-grow 0.5s ease-out',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function LikelyPill({ score }: { score: string }) {
   return (
@@ -119,15 +100,12 @@ export function hintFromSupabase(raw: any, homeTeam: string, awayTeam: string): 
 }
 
 export default function MatchHint({ data }: { data: MatchHintData }) {
-  const [open, setOpen] = useState(false);
   const c = consensus(data);
   const diff = c.home - c.away;
   const favHome = diff >= 0;
   const fav = favHome ? data.home : data.away;
   const favPct = Math.max(c.home, c.away);
   const pos = Math.round((c.away / (c.home + c.away)) * 100);
-
-  const hasOdds = !!data.book.odds;
 
   let verdict: ReactNode;
   if (Math.abs(diff) <= 6) {
@@ -143,17 +121,6 @@ export default function MatchHint({ data }: { data: MatchHintData }) {
       </>
     );
   }
-
-  const sources = [
-    { key: 'book', label: hasOdds ? 'Stavnice' : 'Model (brez kvot)', icon: hasOdds ? '📊' : '🧮', p: data.book },
-    { key: 'model', label: 'Model', icon: '🧮', p: data.model },
-  ];
-
-  const chips = [
-    `λ ${data.model.lambdaHome}–${data.model.lambdaAway}`,
-    `ELO ${data.model.eloHome}·${data.model.eloAway}`,
-    ...(data.book.odds ? [`kvote ${data.book.odds.join(' · ')}`] : []),
-  ];
 
   return (
     <div style={{
@@ -206,63 +173,6 @@ export default function MatchHint({ data }: { data: MatchHintData }) {
       <p style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.45, color: '#374151', margin: 0 }}>
         {verdict} <span style={{ color: '#9aa1ab' }}>Ti odločaš. 🤖</span>
       </p>
-
-      {/* Podrobnosti accordion */}
-      <div style={{ marginTop: 2, borderTop: '1px solid #e9edec', paddingTop: 10 }}>
-        <button
-          type="button"
-          onClick={() => setOpen(o => !o)}
-          style={{
-            display: 'flex', width: '100%', alignItems: 'center',
-            justifyContent: 'center', gap: 6,
-            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          }}
-        >
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: '#0f766e' }}>
-            {open ? 'Skrij podrobnosti' : 'Podrobnosti'}
-          </span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            style={{ color: '#0f766e', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }}>
-            <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-
-        {open && (
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 11 }}>
-            {sources.map(r => (
-              <div key={r.key} style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 11.5 }}>
-                  <span style={{ fontWeight: 600, color: '#6b7280', whiteSpace: 'nowrap' }}>
-                    {r.icon} {r.label}
-                  </span>
-                  <span style={{ display: 'flex', gap: 9, fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                    <span style={{ color: PC.home }}>{r.p.home}%</span>
-                    <span style={{ color: PC.draw }}>{r.p.draw}%</span>
-                    <span style={{ color: PC.away }}>{r.p.away}%</span>
-                  </span>
-                </div>
-                <SegBar p={r.p} height={8} />
-              </div>
-            ))}
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px 7px', paddingTop: 2 }}>
-              {chips.map((t, i) => (
-                <span key={i} style={{
-                  borderRadius: 999, background: '#eef2f1',
-                  padding: '3px 8px', fontSize: 10.5, fontWeight: 500, color: '#6b7280',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {t}
-                </span>
-              ))}
-            </div>
-
-            <p style={{ fontSize: 10.5, fontWeight: 500, lineHeight: 1.4, color: '#9aa1ab', margin: 0 }}>
-              Stavnice + matematični model (Poisson · ELO). Samo algoritem za zabavo — prihodnosti seveda ne poznamo. 🤖
-            </p>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
