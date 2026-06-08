@@ -34,7 +34,7 @@ type Group = {
   name: string
   invite_code: string
   created_at: string
-  created_by: string
+  creator_user_id: string
   users: { name: string }[] | { name: string } | null
   group_members: { count: number }[]
 }

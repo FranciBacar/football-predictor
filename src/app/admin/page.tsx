@@ -73,8 +73,8 @@ export default async function AdminPage() {
     .from('groups')
     .select(`
       id, name, invite_code, created_at,
-      created_by,
-      users!groups_created_by_fkey(name),
+      creator_user_id,
+      users!groups_creator_user_id_fkey(name),
       group_members(count)
     `)
     .order('created_at', { ascending: false })
