@@ -28,11 +28,11 @@ export default function Navbar({ activePath }: { activePath: string }) {
             <Users size={18} />
             Skupine
           </Link>
-          <Link href="/profile" className={`${linkBase} ${activePath === '/profile' ? active : inactive}`}>
+          <Link href="/profile" data-tour="profile-link" className={`${linkBase} ${activePath === '/profile' ? active : inactive}`}>
             <UserCircle size={18} />
             Profil
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto" data-tour="profile-switcher">
             <NavbarProfileSwitcher />
           </div>
         </div>

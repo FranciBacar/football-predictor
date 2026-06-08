@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import DashboardWrapper from './DashboardWrapper'
 import Navbar from '@/components/Navbar'
+import OnboardingTour from '@/components/OnboardingTour'
 import { redirect } from 'next/navigation'
 
 export default async function DashboardPage({
@@ -31,6 +32,7 @@ export default async function DashboardPage({
     <div style={{ minHeight:'100vh', paddingBottom:80, fontFamily:'var(--font)' }} className="md:pb-0 md:pt-16">
       <Navbar activePath="/dashboard" />
 
+      <OnboardingTour />
       <div style={{ maxWidth:640, margin:'0 auto' }}>
         {/* Greeting */}
         <div style={{ padding:'16px 20px 14px', display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
@@ -39,7 +41,7 @@ export default async function DashboardPage({
               Pozdravljen, {firstName}! ⚽
             </h1>
             <p style={{ margin:'4px 0 0', fontSize:13.5, color:'var(--muted)', lineHeight:1.4 }}>
-              Vnesi napovedi za prihajajoče tekme. Zaklene se 15 min pred začetkom.
+              Vnesi napovedi za prihajajoče tekme. Napovedi se zaklenejo 15 min pred začetkom.
             </p>
           </div>
           <div style={{
@@ -58,6 +60,7 @@ export default async function DashboardPage({
         <div style={{ display:'flex', gap:8, padding:'0 16px 16px' }}>
           <a
             href="/dashboard"
+            data-tour="matches-tab"
             style={{
               padding:'8px 18px', borderRadius:999, fontSize:13.5, fontWeight:600,
               textDecoration:'none', transition:'all .15s',
@@ -71,6 +74,7 @@ export default async function DashboardPage({
           </a>
           <a
             href="/dashboard?tab=posebne"
+            data-tour="special-tab"
             style={{
               padding:'8px 18px', borderRadius:999, fontSize:13.5, fontWeight:600,
               textDecoration:'none', transition:'all .15s',

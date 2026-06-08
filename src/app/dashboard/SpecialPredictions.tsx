@@ -266,7 +266,7 @@ export default function SpecialPredictions({
         <div style={{ fontSize: 13, opacity: 0.9 }}>
           {isLocked
             ? '🔒 Napovedi so zaklenjene (SP se je začel)'
-            : 'Zaklene se 11. junija ob 20:00. Napovedi lahko do takrat spreminjaš.'}
+            : 'Zaklenejo se 11. junija ob 20:00. Napovedi lahko do takrat spreminjaš.'}
         </div>
         <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4, opacity: 0.95 }}>
           Možnih bonus točk: <strong>10 + 10 + 10 + (12 × 3) = 66 točk</strong>

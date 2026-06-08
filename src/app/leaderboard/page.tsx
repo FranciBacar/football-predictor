@@ -72,7 +72,7 @@ export default async function LeaderboardPage({
             Lestvica
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Razvrščeni po skupnih točkah. Tie-breaker: število točnih rezultatov.
+            Razvrščeni po skupnih točkah. Pri izenačitvi odloča število točnih rezultatov.
           </p>
         </div>
 

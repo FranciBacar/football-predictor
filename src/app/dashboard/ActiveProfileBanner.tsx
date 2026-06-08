@@ -27,7 +27,7 @@ export default function ActiveProfileBanner() {
           padding: '4px 12px', cursor: 'pointer',
         }}
       >
-        Preklopiti nazaj
+        Preklopi nazaj
       </button>
     </div>
   )

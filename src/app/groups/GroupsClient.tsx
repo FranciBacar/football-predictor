@@ -142,7 +142,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
         <div className="text-center bg-white border border-dashed border-gray-300 rounded-xl py-16 px-4 text-gray-500">
           <Users size={40} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Še nisi v nobeni skupini</p>
-          <p className="text-sm mt-1">Ustvari skupino ali se pridruži s povabilo kodo.</p>
+          <p className="text-sm mt-1">Ustvari skupino ali se pridruži s povabilno kodo.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -247,7 +247,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                       <p className="text-sm font-semibold text-red-700 mb-2">
                         {isCreator
                           ? '⚠️ Izbriši skupino? Vsi člani bodo odstranjeni.'
-                          : '⚠️ Zapustiti skupino?'}
+                          : '⚠️ Zapusti skupino?'}
                       </p>
                       <div className="flex gap-2">
                         <button
