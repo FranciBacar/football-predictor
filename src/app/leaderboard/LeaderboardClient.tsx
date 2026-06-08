@@ -9,6 +9,7 @@ type LeaderboardEntry = {
   user_id: string
   name: string
   avatar_url: string | null
+  avatar_emoji?: string | null
   total_points: number
   exact_predictions: number
   rank: number
@@ -40,8 +41,35 @@ export default function LeaderboardClient({
   const loadGroup = async (groupId: string) => {
     if (groupData[groupId]) return
     setLoading(true)
-    const { data, error } = await supabase.rpc('get_group_leaderboard', { p_group_id: groupId })
-    if (!error && data) setGroupData(prev => ({ ...prev, [groupId]: data }))
+
+    // Fetch točke + vse člane vzporedno
+    const [{ data: rpcData }, { data: members }] = await Promise.all([
+      supabase.rpc('get_group_leaderboard', { p_group_id: groupId }),
+      supabase
+        .from('group_members')
+        .select('users(id, name, avatar_url, avatar_emoji)')
+        .eq('group_id', groupId),
+    ])
+
+    const pointsMap = new Map((rpcData ?? []).map((e: any) => [e.user_id, e]))
+    const allMembers = (members ?? []).map((m: any) => m.users).filter(Boolean)
+
+    const merged: LeaderboardEntry[] = allMembers.map((u: any) => {
+      const entry = pointsMap.get(u.id)
+      return entry ?? {
+        user_id: u.id,
+        name: u.name,
+        avatar_url: u.avatar_url,
+        avatar_emoji: u.avatar_emoji,
+        total_points: 0,
+        exact_predictions: 0,
+        rank: 0,
+      }
+    })
+    merged.sort((a, b) => b.total_points - a.total_points || b.exact_predictions - a.exact_predictions || a.name.localeCompare(b.name))
+    merged.forEach((e, i) => { e.rank = i + 1 })
+
+    setGroupData(prev => ({ ...prev, [groupId]: merged }))
     setLoading(false)
   }
 

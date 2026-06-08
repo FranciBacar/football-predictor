@@ -18,12 +18,39 @@ export default async function LeaderboardPage({
   if (!user) redirect('/login')
 
   // Pridobi globalno lestvico
-  const { data: globalData } = await supabase.rpc('get_global_leaderboard')
+  const { data: globalRpc } = await supabase.rpc('get_global_leaderboard')
+
+  // Vsi uporabniki (za prikaz z 0 točkami)
+  const { data: allUsers } = await supabase
+    .from('users')
+    .select('id, name, avatar_url, avatar_emoji, is_kid, is_underage')
+    .eq('is_kid', false)
+    .order('name', { ascending: true })
+
+  // Mergaj: tisti brez točk dobijo rank = 0 (sortiramo spodaj)
+  const pointsMap = new Map((globalRpc ?? []).map((e: any) => [e.user_id, e]))
+  const globalData = (allUsers ?? []).map((u, i) => {
+    const entry = pointsMap.get(u.id)
+    return entry ?? {
+      user_id: u.id,
+      name: u.name,
+      avatar_url: u.avatar_url,
+      avatar_emoji: u.avatar_emoji,
+      total_points: 0,
+      exact_predictions: 0,
+      rank: 0,
+    }
+  })
+  // Sortiraj in dodeli rank
+  globalData.sort((a: any, b: any) =>
+    b.total_points - a.total_points || b.exact_predictions - a.exact_predictions || a.name.localeCompare(b.name)
+  )
+  globalData.forEach((e: any, i: number) => { e.rank = i + 1 })
 
   // Kids lestvica — is_kid = true (dodani s strani starša) ALI is_underage = true (sami prijavili)
   const { data: kidsRaw } = await supabase
     .from('users')
-    .select('id, name, avatar_emoji, is_kid')
+    .select('id, name, avatar_url, avatar_emoji, is_kid')
     .or('is_kid.eq.true,is_underage.eq.true')
 
   // Za vsak kid izračunaj točke
