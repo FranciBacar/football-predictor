@@ -3,6 +3,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { getTeam, hexAlpha } from '@/lib/teamData'
+import MatchHint, { hintFromSupabase } from '@/components/MatchHint'
+
+const SHOW_HINTS = process.env.NEXT_PUBLIC_SHOW_HINTS === 'true'
 
 // ── Types ──────────────────────────────────────────────────────
 type Match = {
@@ -132,13 +135,14 @@ function TeamDisplay({ name }: { name: string }) {
 
 // ── Match Card ─────────────────────────────────────────────────
 function MatchCard({
-  match, pred, savedPred, onPredChange, onSave,
+  match, pred, savedPred, onPredChange, onSave, hint,
 }: {
   match: Match
   pred: LocalPred
   savedPred: Prediction | null
   onPredChange: (p: LocalPred) => void
   onSave: () => void
+  hint?: any
 }) {
   const open = match.status === 'Upcoming'
   const locked = match.status === 'Locked' || match.status === 'In Progress'
@@ -202,6 +206,12 @@ function MatchCard({
           </div>
           <TeamDisplay name={match.away_team} />
         </div>
+
+        {/* Match hint */}
+        {SHOW_HINTS && open && hint && (() => {
+          const data = hintFromSupabase(hint, match.home_team, match.away_team)
+          return data ? <MatchHint data={data} /> : null
+        })()}
 
         {/* Knockout advancing selector */}
         {open && needsAdvancing && (
@@ -367,6 +377,22 @@ export default function MatchesClient({
 
   const [saving, setSaving] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastMsg>(null)
+  const [hints, setHints] = useState<Record<string, any>>({})
+
+  // Fetch hints samo če je feature flag vklopljen
+  useEffect(() => {
+    if (!SHOW_HINTS) return
+    const matchIds = matches.map(m => m.id)
+    supabase
+      .from('match_hints')
+      .select('*')
+      .in('match_id', matchIds)
+      .then(({ data }) => {
+        const map: Record<string, any> = {}
+        for (const h of data ?? []) map[h.match_id] = h
+        setHints(map)
+      })
+  }, [matches.map(m => m.id).join(',')])
 
   const showToast = useCallback((msg: ToastMsg) => {
     setToast(msg)
@@ -467,6 +493,7 @@ export default function MatchesClient({
             savedPred={saved[match.id] ?? null}
             onPredChange={p => setLocal(prev => ({ ...prev, [match.id]: p }))}
             onSave={() => handleSave(match.id)}
+            hint={hints[match.id]}
           />
         ))
       )}
