@@ -33,6 +33,9 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/auth')
   const isPublicRoute = request.nextUrl.pathname === '/' || isAuthRoute
+    || request.nextUrl.pathname.startsWith('/zasebnost')
+    || request.nextUrl.pathname.startsWith('/pravila')
+    || request.nextUrl.pathname.startsWith('/join')
 
   if (!user && !isPublicRoute) {
     // Brez uporabnika na zaščiteni poti -> pošlji na login
