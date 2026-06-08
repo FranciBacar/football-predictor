@@ -124,15 +124,13 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient()
 
-  // Pridobi prihodnje tekme (naslednje 7 dni) ki še nimajo izida
+  // Pridobi VSE prihodnje tekme ki še nimajo izida (celotno obdobje prvenstva)
   const now = new Date()
-  const week = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
   const { data: matches } = await supabase
     .from('matches')
     .select('id, home_team, away_team, match_time_utc')
     .is('actual_score_home', null)
     .gte('match_time_utc', now.toISOString())
-    .lte('match_time_utc', week.toISOString())
     .order('match_time_utc', { ascending: true })
 
   if (!matches || matches.length === 0) {
