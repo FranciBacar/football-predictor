@@ -154,7 +154,6 @@ export default function SpecialPredictions({
     setSaving(prev => ({ ...prev, [type]: false }))
     if (!error) {
       setSaved(prev => ({ ...prev, [type]: true }))
-      setTimeout(() => setSaved(prev => ({ ...prev, [type]: false })), 2000)
     }
   }, [supabase, userId])
 
@@ -170,23 +169,31 @@ export default function SpecialPredictions({
     const val = values[type]
     if (isLocked) return null
     if (!val) return null
+    const isSaved = saved[type]
     return (
       <button
         onClick={() => save(type, val)}
-        disabled={saving[type]}
+        disabled={saving[type] || isSaved}
         style={{
           marginTop: 8,
-          padding: '8px 18px',
-          borderRadius: 8,
-          background: saved[type] ? '#dcfce7' : 'linear-gradient(115deg, #0f766e 0%, #2dd4bf 100%)',
-          color: saved[type] ? '#15803d' : '#fff',
-          fontSize: 13,
-          fontWeight: 600,
+          width: '100%',
+          height: 46,
+          borderRadius: 13,
+          background: isSaved ? '#e7f6ed' : 'linear-gradient(115deg, #0f766e 0%, #2dd4bf 100%)',
+          color: isSaved ? '#0f766e' : '#fff',
+          fontSize: 14.5,
+          fontWeight: 650,
           border: 'none',
-          cursor: saving[type] ? 'wait' : 'pointer',
+          cursor: isSaved ? 'default' : saving[type] ? 'wait' : 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          boxShadow: isSaved ? 'none' : '0 6px 16px rgba(15,118,110,0.28)',
+          transition: 'all .15s',
+          letterSpacing: '-0.01em',
         }}
       >
-        {saving[type] ? 'Shranjujem...' : saved[type] ? '✓ Shranjeno' : 'Shrani'}
+        {isSaved
+          ? <><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg> Napoved shranjena</>
+          : saving[type] ? 'Shranjujem...' : 'Shrani napoved'}
       </button>
     )
   }
@@ -297,7 +304,7 @@ export default function SpecialPredictions({
         />
       )}
 
-      {renderCard('best_player', '🌟', 'Najboljši igralec (MVP)', 'Kdo bo razglašen za najboljšega igralca SP?', 10,
+      {renderCard('best_player', '🌟', 'Najboljši igralec (Zlati čevelj)', 'Kdo bo razglašen za najboljšega igralca SP?', 10,
         <TextInput
           value={values['best_player'] ?? ''}
           onChange={v => handleChange('best_player', v)}
