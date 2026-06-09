@@ -4,8 +4,6 @@ import { Resend } from 'resend'
 import fs from 'fs'
 import path from 'path'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
-
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret')
   if (secret !== process.env.CRON_SECRET) {
@@ -15,6 +13,7 @@ export async function GET(req: NextRequest) {
   // dry run — samo preštej prejemnike brez pošiljanja
   const dryRun = req.nextUrl.searchParams.get('dry') === '1'
 
+  const resend = new Resend(process.env.RESEND_API_KEY!)
   const supabase = createAdminClient()
   const { data: users, error } = await supabase
     .from('users')
