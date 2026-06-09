@@ -54,12 +54,12 @@ export default async function PravilaPage({
             📊 Točkovanje tekem
           </h2>
           <p style={{ fontSize: 13.5, color: '#6b7280', margin: '0 0 14px', lineHeight: 1.5 }}>
-            Napoveduješ točne rezultate tekem <strong>po 90 minutah</strong> (brez podaljškov in penalt).
+            Napoveduješ točne rezultate tekem <strong>po 90 minutah</strong> (brez podaljškov in 11-metrovk).
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
               { emoji: '🎯', pts: '3 točke', title: 'Točen rezultat', desc: 'Napoveš 2:1 in tekma se konča z 2:1.' },
-              { emoji: '📐', pts: '2 točki', title: 'Pravilen tip + zadetki ene ekipe', desc: 'Napoveš 3:1, tekma 2:1 — zmaga pravilna in away gol (1) se ujema.' },
+              { emoji: '📐', pts: '2 točki', title: 'Pravilen tip + zadetki ene ekipe', desc: 'Napoveš 3:1, tekma 2:1 — zmaga pravilna in zadetki gostov (1) se ujemajo.' },
               { emoji: '✅', pts: '1 točka', title: 'Pravilen tip tekme', desc: 'Pravilno napoveš zmagovalca ali remi, ampak zadetki se ne ujemajo.' },
               { emoji: '❌', pts: '0 točk', title: 'Napačen tip', desc: 'Napoveš zmago domačih, pa izgubijo ali je remi.' },
             ].map(row => (
@@ -116,7 +116,7 @@ export default async function PravilaPage({
             {[
               { emoji: '🏆', title: 'Zmagovalec SP', pts: '+10 točk' },
               { emoji: '⚽', title: 'Najboljši strelec', pts: '+10 točk' },
-              { emoji: '🌟', title: 'Najboljši igralec (MVP)', pts: '+10 točk' },
+              { emoji: '🌟', title: 'Najboljši igralec (Zlati čevelj)', pts: '+10 točk' },
               { emoji: '🥇', title: 'Zmagovalec vsake od 12 skupin (A–L)', pts: '+3 točke vsaka' },
             ].map(row => (
               <div key={row.title} style={{
@@ -153,6 +153,25 @@ export default async function PravilaPage({
           <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 12px', color: '#1a1a1a' }}>🏅 Izenačeno število točk</h2>
           <p style={{ fontSize: 13.5, color: '#6b7280', margin: 0, lineHeight: 1.6 }}>
             Pri enakem številu točk odloča <strong>število točnih rezultatov</strong> (3-točkovnih zadetkov). Kdor jih ima več, je višje na lestvici.
+          </p>
+        </div>
+
+        {/* Algoritem */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '20px', marginBottom: 16, border: '1px solid #f0f0f0' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 12px', color: '#1a1a1a' }}>💡 Algoritemski namig</h2>
+          <p style={{ fontSize: 13.5, color: '#6b7280', margin: '0 0 10px', lineHeight: 1.6 }}>
+            Pri vsaki odprto tekmi najdeš analitični namig — ni namenjen temu, da misliš namesto tebe, ampak da imaš dodatno informacijo pred odločitvijo.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ padding: '10px 14px', borderRadius: 10, background: '#f9fafb', fontSize: 13.5, color: '#374151', lineHeight: 1.5 }}>
+              <strong>📊 Stavnice</strong> — verjetnosti izračunane iz pravih stavniških kvot. Odražajo, kaj trg pričakuje.
+            </div>
+            <div style={{ padding: '10px 14px', borderRadius: 10, background: '#f9fafb', fontSize: 13.5, color: '#374151', lineHeight: 1.5 }}>
+              <strong>🧮 Model</strong> — naš matematični algoritem (Poisson statistika + ELO moč ekip) neodvisno oceni verjetnosti na podlagi zgodovinskih podatkov.
+            </div>
+          </div>
+          <p style={{ fontSize: 12, color: '#9aa1ab', margin: '10px 0 0', lineHeight: 1.5 }}>
+            Konsenz v zgornjem drsnem kazalcu je povprečje obeh virov. Samo za zabavo — prihodnosti ne poznamo. 🤖
           </p>
         </div>
 
