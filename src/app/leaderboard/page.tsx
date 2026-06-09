@@ -2,7 +2,26 @@ import { createClient } from '@/utils/supabase/server'
 import Navbar from '@/components/Navbar'
 import LeaderboardClient from './LeaderboardClient'
 import { redirect } from 'next/navigation'
-import { Trophy } from 'lucide-react'
+import type { Player } from '@/components/Leaderboard'
+
+/** Pretvori Supabase vrstico v Player tip */
+function toPlayer(e: any, currentUserId: string): Player {
+  const nameParts = (e.name ?? '?').split(' ')
+  const initials = nameParts
+    .map((p: string) => (p[0] ?? '').toUpperCase())
+    .join('')
+    .slice(0, 2) || '?'
+  return {
+    id: e.user_id,
+    name: e.name ?? '',
+    sub: `${e.exact_predictions ?? 0} točnih`,
+    exact: e.exact_predictions ?? 0,
+    points: e.total_points ?? 0,
+    avatarUrl: e.avatar_url ?? null,
+    initials,
+    you: e.user_id === currentUserId,
+  }
+}
 
 export default async function LeaderboardPage({
   searchParams,
@@ -12,48 +31,40 @@ export default async function LeaderboardPage({
   const supabase = await createClient()
   const { group: groupId } = await searchParams
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Pridobi globalno lestvico
+  /* ── 1. Globalna lestvica ────────────────────────────────── */
   const { data: globalRpc } = await supabase.rpc('get_global_leaderboard')
-
-  // Vsi uporabniki na globalni lestvici (is_global_opt_in = true, otroci in odrasli)
   const { data: allUsers } = await supabase
     .from('users')
-    .select('id, name, avatar_url, avatar_emoji, is_kid, is_underage')
+    .select('id, name, avatar_url, is_kid, is_underage')
     .eq('is_global_opt_in', true)
     .order('name', { ascending: true })
 
-  // Mergaj: tisti brez točk dobijo rank = 0 (sortiramo spodaj)
   const pointsMap = new Map((globalRpc ?? []).map((e: any) => [e.user_id, e]))
-  const globalData: any[] = (allUsers ?? []).map((u) => {
+  const globalRaw: any[] = (allUsers ?? []).map((u) => {
     const entry = pointsMap.get(u.id)
     return entry ?? {
       user_id: u.id,
       name: u.name,
       avatar_url: u.avatar_url ?? null,
-      avatar_emoji: u.avatar_emoji ?? null,
       total_points: 0,
       exact_predictions: 0,
-      rank: 0,
     }
   })
-  // Sortiraj in dodeli rank
-  globalData.sort((a: any, b: any) =>
-    b.total_points - a.total_points || b.exact_predictions - a.exact_predictions || a.name.localeCompare(b.name)
+  globalRaw.sort((a, b) =>
+    b.total_points - a.total_points ||
+    b.exact_predictions - a.exact_predictions ||
+    a.name.localeCompare(b.name)
   )
-  globalData.forEach((e: any, i: number) => { e.rank = i + 1 })
 
-  // Kids lestvica — is_kid = true (dodani s strani starša) ALI is_underage = true (sami prijavili)
+  /* ── 2. Otroci ───────────────────────────────────────────── */
   const { data: kidsRaw } = await supabase
     .from('users')
-    .select('id, name, avatar_url, avatar_emoji, is_kid')
+    .select('id, name, avatar_url, is_kid')
     .or('is_kid.eq.true,is_underage.eq.true')
 
-  // Za vsak kid izračunaj točke
   const kidsWithPoints = await Promise.all(
     (kidsRaw ?? []).map(async (kid) => {
       const { data: preds } = await supabase
@@ -65,52 +76,96 @@ export default async function LeaderboardPage({
         .select('earned_points')
         .eq('user_id', kid.id)
       const total = [
-        ...(preds ?? []).map(p => p.earned_points ?? 0),
-        ...(special ?? []).map(s => s.earned_points ?? 0),
-      ].reduce((a, b) => a + b, 0)
-      const exact = (preds ?? []).filter(p => p.earned_points === 3 || p.earned_points === 6).length
-      return { user_id: kid.id, name: kid.name, avatar_url: null, avatar_emoji: kid.avatar_emoji, total_points: total, exact_predictions: exact, rank: 0 }
+        ...(preds ?? []).map((p: any) => p.earned_points ?? 0),
+        ...(special ?? []).map((s: any) => s.earned_points ?? 0),
+      ].reduce((a: number, b: number) => a + b, 0)
+      const exact = (preds ?? []).filter(
+        (p: any) => p.earned_points === 3 || p.earned_points === 6
+      ).length
+      return {
+        user_id: kid.id,
+        name: kid.name,
+        avatar_url: null,
+        total_points: total,
+        exact_predictions: exact,
+      }
     })
   )
-  const kidsData = kidsWithPoints
-    .sort((a, b) => b.total_points - a.total_points || b.exact_predictions - a.exact_predictions)
-    .map((k, i) => ({ ...k, rank: i + 1 }))
+  kidsWithPoints.sort(
+    (a, b) => b.total_points - a.total_points || b.exact_predictions - a.exact_predictions
+  )
 
-  // Pridobi skupin, v katerih je prijavljen uporabnik
+  /* ── 3. Skupine (eager server-side) ──────────────────────── */
   const { data: memberships } = await supabase
     .from('group_members')
     .select('group_id, groups(id, name)')
     .eq('user_id', user.id)
 
-  const groups =
-    memberships
-      ?.map((m) => m.groups)
-      .filter(Boolean)
-      .map((g) => g as unknown as { id: string; name: string }) ?? []
+  const groups = (memberships ?? [])
+    .map((m) => m.groups)
+    .filter(Boolean)
+    .map((g) => g as unknown as { id: string; name: string })
+
+  const groupsWithData = await Promise.all(
+    groups.map(async (g) => {
+      const [{ data: rpcData }, { data: memberRows }] = await Promise.all([
+        supabase.rpc('get_group_leaderboard', { p_group_id: g.id }),
+        supabase.from('group_members').select('user_id').eq('group_id', g.id),
+      ])
+      const userIds = (memberRows ?? []).map((m: any) => m.user_id)
+      const { data: userRows } = userIds.length > 0
+        ? await supabase.from('users').select('id, name, avatar_url').in('id', userIds)
+        : { data: [] as any[] }
+
+      const gPointsMap = new Map((rpcData ?? []).map((e: any) => [e.user_id, e]))
+      const merged: any[] = (userRows ?? []).map((u: any) => {
+        const entry = gPointsMap.get(u.id)
+        return entry ?? {
+          user_id: u.id,
+          name: u.name,
+          avatar_url: u.avatar_url ?? null,
+          total_points: 0,
+          exact_predictions: 0,
+        }
+      })
+      merged.sort(
+        (a, b) =>
+          b.total_points - a.total_points ||
+          b.exact_predictions - a.exact_predictions ||
+          a.name.localeCompare(b.name)
+      )
+      return { id: g.id, name: g.name, data: merged }
+    })
+  )
+
+  /* ── Sestavi tabs + rowsByTab ─────────────────────────────── */
+  const tabs: string[] = [
+    'Globalna',
+    ...(kidsWithPoints.length > 0 ? ['Otroci'] : []),
+    ...groupsWithData.map((g) => g.name),
+  ]
+
+  const rowsByTab: Record<string, Player[]> = {
+    Globalna: globalRaw.map((e) => toPlayer(e, user.id)),
+    ...(kidsWithPoints.length > 0
+      ? { Otroci: kidsWithPoints.map((e) => toPlayer(e, user.id)) }
+      : {}),
+    ...Object.fromEntries(
+      groupsWithData.map((g) => [g.name, g.data.map((e: any) => toPlayer(e, user.id))])
+    ),
+  }
+
+  const defaultTabGroup = groupId
+    ? groupsWithData.find((g) => g.id === groupId)?.name
+    : null
+  const defaultTab = defaultTabGroup ?? 'Globalna'
 
   return (
     <div className="min-h-screen pb-20 md:pb-0 pt-0 md:pt-16" style={{ background: 'var(--page)' }}>
       <Navbar activePath="/leaderboard" />
-
-      <main className="max-w-3xl mx-auto px-4 md:px-0 mt-4 md:mt-0">
-        <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Trophy size={20} className="text-yellow-500" />
-            Lestvica
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Razvrščeni po skupnih točkah. Pri izenačitvi odloča število točnih rezultatov.
-          </p>
-        </div>
-
-        <LeaderboardClient
-          globalData={globalData ?? []}
-          kidsData={kidsData}
-          groups={groups}
-          currentUserId={user.id}
-          initialGroupId={groupId ?? null}
-        />
-      </main>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
+        <LeaderboardClient tabs={tabs} rowsByTab={rowsByTab} defaultTab={defaultTab} />
+      </div>
     </div>
   )
 }
