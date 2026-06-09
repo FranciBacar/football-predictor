@@ -1,130 +1,130 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
+/**
+ * MatchCard — napovedna kartica (Football Predictor), premium slog.
+ *
+ * Stanja: open (vnos + algoritem + shrani) · locked (zaklenjeno) · finished (rezultat + točke).
+ * Izločilni remi → inline izbor "kdo napreduje?".
+ * Algoritem (predictor) se prikaže pri odprtih tekmah prek <MatchHint>.
+ *
+ * Brez okrasnih emojijev — le zastave ekip. Solid teal za primarni gumb.
+ */
 
-interface MatchCardProps {
-  match: {
-    id: string
-    competition: string
-    home_team: string
-    away_team: string
-    home_flag: string
-    away_flag: string
-    time: string
-    is_knockout: boolean
-    status: 'open' | 'locked'
-  }
+import MatchHint, { type MatchHintData } from './MatchHint';
+
+export type TeamLite = { code: string; name: string; flag: string };
+export type Score = { home: number; away: number; advancing?: string };
+
+export type Match = {
+  id: string;
+  whenLabel: string;        // npr. "čet., 11. 06. ob 21:00"
+  home: TeamLite;
+  away: TeamLite;
+  isKnockout: boolean;
+  status: 'open' | 'locked' | 'finished';
+  actual?: { home: number; away: number } | null;
+  earned?: number | null;
+  hint?: MatchHintData | null;
+};
+
+const ptsWord = (n: number) => (n === 1 ? 'točka' : n === 2 ? 'točki' : n === 3 || n === 4 ? 'točke' : 'točk');
+
+function Stepper({ value, onChange, editable, readValue }: { value: number; onChange?: (v: number) => void; editable: boolean; readValue?: number }) {
+  const v = editable ? value : (readValue ?? value);
+  return (
+    <div className="flex flex-col items-center gap-[7px]">
+      <div className={`flex h-[56px] w-[54px] items-center justify-center rounded-[14px] border text-[27px] font-extrabold tabular-nums tracking-[-0.02em] ${editable ? 'border-[#e7ebea] bg-[#f4f7f6] text-[#0f766e]' : 'border-[#ebeeec] bg-white text-[#15201d]'}`}>{v}</div>
+      {editable && onChange && (
+        <div className="flex gap-1.5">
+          <button type="button" onClick={() => onChange(Math.max(0, value - 1))} className="flex h-[26px] w-[30px] items-center justify-center rounded-lg border border-[#ebeeec] bg-white text-[16px] font-bold text-[#0f766e] active:scale-90">−</button>
+          <button type="button" onClick={() => onChange(Math.min(19, value + 1))} className="flex h-[26px] w-[30px] items-center justify-center rounded-lg border border-[#ebeeec] bg-white text-[16px] font-bold text-[#0f766e] active:scale-90">+</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
-export default function MatchCard({ match }: MatchCardProps) {
-  const [homeScore, setHomeScore] = useState<string>('')
-  const [awayScore, setAwayScore] = useState<string>('')
-  const [advancingTeam, setAdvancingTeam] = useState<string | null>(null)
+function Team({ t }: { t: TeamLite }) {
+  return (
+    <div className="flex flex-col items-center gap-2 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-[13px] border border-[#e7ebea] bg-[#f4f7f6] text-[27px] leading-none">{t.flag}</div>
+      <div className="max-w-[96px] text-[13px] font-semibold tracking-tight">{t.name}</div>
+    </div>
+  );
+}
 
-  const isTie = homeScore !== '' && awayScore !== '' && homeScore === awayScore
-  const showKnockoutBox = match.is_knockout && isTie
+export default function MatchCard({ match, pred, saved, onChange, onSave }: {
+  match: Match;
+  pred: Score;
+  saved: Score | null;
+  onChange: (s: Score) => void;
+  onSave: () => void;
+}) {
+  const open = match.status === 'open';
+  const finished = match.status === 'finished';
+  const locked = match.status === 'locked';
+  const isDraw = pred.home === pred.away;
+  const needsAdvancing = open && match.isKnockout && isDraw;
+  const dirty = !saved || saved.home !== pred.home || saved.away !== pred.away || saved.advancing !== pred.advancing;
+  const canSave = open && dirty && (!needsAdvancing || !!pred.advancing);
+
+  const badge = open
+    ? { c: 'bg-[#eaf6f0] text-[#15803d]', d: 'bg-[#15803d]', t: 'Odprto' }
+    : locked
+      ? { c: 'bg-[#fbeceb] text-[#c0392b]', d: 'bg-[#c0392b]', t: 'Zaklenjeno' }
+      : { c: 'bg-[#eef1f0] text-[#5b6470]', d: 'bg-[#aab0b8]', t: 'Končano' };
 
   return (
-    <div className="bg-white border rounded-xl shadow-sm overflow-hidden mb-4">
-      {/* Header */}
-      <div className="px-4 py-3 flex justify-between items-center border-b border-gray-50">
-        <div className="flex items-center gap-2 text-gray-600 text-sm font-medium">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          {match.competition}
-        </div>
-        <div className="flex gap-2">
-          {match.is_knockout && (
-            <span className="bg-pink-50 text-pink-600 px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-              Izločilni
-            </span>
-          )}
-          {match.status === 'open' ? (
-            <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded-md text-xs font-semibold">
-              Odprto
-            </span>
-          ) : (
-            <span className="bg-orange-50 text-orange-600 px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              Zaklenjeno
-            </span>
-          )}
-        </div>
+    <div className="overflow-hidden rounded-[18px] border border-[#ebeeec] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.03),0_10px_26px_rgba(16,24,40,0.05)]">
+      <div className="flex items-center justify-between border-b border-[#ebeeec] px-4 py-[13px]">
+        <span className="text-[12.5px] font-medium text-[#6b7280]">{match.whenLabel}</span>
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-[5px] text-[10px] font-bold uppercase tracking-[0.07em] ${badge.c}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${badge.d}`} />{badge.t}
+        </span>
       </div>
 
-      {/* Body */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          {/* Home Team */}
-          <div className="flex flex-col gap-1 w-1/3">
-            <span className="text-2xl">{match.home_flag}</span>
-            <span className="font-bold text-gray-900 text-lg">{match.home_team}</span>
+      <div className="px-4 pb-4 pt-[18px]">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <Team t={match.home} />
+          <div className="flex items-center gap-[9px]">
+            <Stepper editable={open} value={pred.home} readValue={finished ? match.actual?.home : saved?.home ?? pred.home} onChange={(v) => onChange({ ...pred, home: v })} />
+            <span className="text-[22px] font-bold text-[#cfd5d3]">:</span>
+            <Stepper editable={open} value={pred.away} readValue={finished ? match.actual?.away : saved?.away ?? pred.away} onChange={(v) => onChange({ ...pred, away: v })} />
           </div>
-
-          {/* Scores */}
-          <div className="flex items-center gap-2 w-1/3 justify-center">
-            <input
-              type="number"
-              value={homeScore}
-              onChange={(e) => setHomeScore(e.target.value)}
-              disabled={match.status === 'locked'}
-              className="w-14 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-500"
-            />
-            <span className="text-gray-500 font-bold">:</span>
-            <input
-              type="number"
-              value={awayScore}
-              onChange={(e) => setAwayScore(e.target.value)}
-              disabled={match.status === 'locked'}
-              className="w-14 h-12 text-center text-xl font-bold border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-50 disabled:text-gray-500"
-            />
-          </div>
-
-          {/* Away Team */}
-          <div className="flex flex-col items-end gap-1 w-1/3">
-            <span className="text-2xl">{match.away_flag}</span>
-            <span className="font-bold text-gray-900 text-lg">{match.away_team}</span>
-          </div>
+          <Team t={match.away} />
         </div>
 
-        {/* Knockout Conditional Box */}
-        {showKnockoutBox && (
-          <div className="mt-4 bg-pink-50/50 border border-pink-100 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
-            <p className="text-pink-800 text-sm font-medium mb-3 flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
-              Napovedan remi — kdo napreduje?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setAdvancingTeam('home')}
-                className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-2 font-medium transition-colors ${
-                  advancingTeam === 'home' 
-                    ? 'bg-white border-pink-500 text-pink-700 shadow-sm' 
-                    : 'bg-white border-gray-200 text-gray-700 hover:border-pink-300'
-                }`}
-              >
-                {match.home_flag} {match.home_team}
+        {needsAdvancing && (
+          <div className="mt-3.5 flex flex-wrap items-center gap-2 rounded-xl border border-[#b9e7d4] bg-[#ecfdf5] px-3 py-2.5">
+            <span className="flex-1 text-[11.5px] font-semibold text-[#065f46]">Remi — kdo napreduje?</span>
+            {[match.home, match.away].map((t) => (
+              <button key={t.code} type="button" onClick={() => onChange({ ...pred, advancing: t.code })}
+                className={`inline-flex items-center gap-1.5 rounded-lg border-[1.5px] px-2.5 py-1.5 text-[11.5px] font-semibold ${pred.advancing === t.code ? 'border-[#0f766e] bg-[#e9f7f5] text-[#0f766e]' : 'border-[#cdeadd] bg-white text-[#374151]'}`}>
+                <span>{t.flag}</span>{t.name}
               </button>
-              <button
-                onClick={() => setAdvancingTeam('away')}
-                className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-2 font-medium transition-colors ${
-                  advancingTeam === 'away' 
-                    ? 'bg-white border-pink-500 text-pink-700 shadow-sm' 
-                    : 'bg-white border-gray-200 text-gray-700 hover:border-pink-300'
-                }`}
-              >
-                {match.away_flag} {match.away_team}
-              </button>
+            ))}
+          </div>
+        )}
+
+        {open && match.hint && <div className="mt-3.5"><MatchHint data={match.hint} /></div>}
+
+        {finished && (
+          <div className="mt-3.5 flex items-center justify-between gap-3 rounded-[13px] border border-[#ebeeec] bg-[#fafbfb] px-3.5 py-3">
+            <div className="whitespace-nowrap text-[12px] text-[#6b7280]">Tvoja napoved <b className="ml-1.5 text-[14.5px] font-bold tabular-nums text-[#15201d]">{saved?.home ?? '–'} : {saved?.away ?? '–'}</b></div>
+            <div className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-bold ${match.earned === 0 ? 'bg-[#eef1f0] text-[#9aa1ab]' : 'bg-[#e9f7f5] text-[#0f766e]'}`}>
+              {match.earned === 0 ? '0 točk' : `+${match.earned} ${ptsWord(match.earned ?? 0)}`}
             </div>
           </div>
         )}
 
-        {/* Footer info */}
-        <div className="mt-4 flex items-center gap-1.5 text-gray-500 text-xs font-medium">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          {match.time}
-        </div>
+        {open && (
+          <button type="button" disabled={!canSave} onClick={onSave}
+            className={`mt-4 h-[46px] w-full rounded-[13px] text-[14.5px] font-semibold transition ${!dirty ? 'bg-[#e7f6ed] text-[#15803d]' : canSave ? 'bg-[#0f766e] text-white hover:bg-[#0c5f58] active:translate-y-px' : 'cursor-default bg-[#f1f3f2] text-[#9aa1ab]'}`}>
+            {!dirty ? '✓ Napoved shranjena' : needsAdvancing && !pred.advancing ? 'Izberi, kdo napreduje' : 'Shrani napoved'}
+          </button>
+        )}
+        {locked && <div className="mt-4 flex h-[46px] w-full items-center justify-center rounded-[13px] bg-[#f1f3f2] text-[14px] font-semibold text-[#9aa1ab]">Napovedi zaklenjene</div>}
       </div>
     </div>
-  )
+  );
 }

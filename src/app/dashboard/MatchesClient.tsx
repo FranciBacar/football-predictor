@@ -2,8 +2,10 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { getTeam, hexAlpha } from '@/lib/teamData'
-import MatchHint, { hintFromSupabase } from '@/components/MatchHint'
+import { getTeam } from '@/lib/teamData'
+import { hintFromSupabase } from '@/components/MatchHint'
+import MatchCard from '@/components/MatchCard'
+import type { Match as CardMatch } from '@/components/MatchCard'
 import ScheduleView from '@/components/ScheduleView'
 import type { Match as ScheduleMatch, Score } from '@/components/ScheduleRow'
 
@@ -63,13 +65,6 @@ function fmtDate(utc: string): string {
   return `${day}, ${dd}. ${mm}. ob ${hh}:${min}`
 }
 
-function ptLabel(pts: number): string {
-  if (pts === 1) return '+1 točka'
-  if (pts === 2) return '+2 točki'
-  if (pts === 3 || pts === 4) return `+${pts} točke`
-  return '0 točk'
-}
-
 // ── Adapter: Supabase Match → ScheduleRow Match ────────────────
 function toScheduleMatch(
   m: Match,
@@ -106,255 +101,28 @@ function toScheduleMatch(
   }
 }
 
-// ── Stepper ────────────────────────────────────────────────────
-function Stepper({ value, editable, onChange }: {
-  value: number
-  editable: boolean
-  onChange?: (v: number) => void
-}) {
-  return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
-      <div style={{
-        width:50, height:52, borderRadius:14,
-        background: editable ? 'var(--teal-light)' : '#f3f4f6',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        fontSize:26, fontWeight:700, color: editable ? 'var(--teal)' : '#9aa1ab',
-        fontVariantNumeric:'tabular-nums', letterSpacing:'-0.02em',
-        border: editable ? '1.5px solid rgba(15,118,110,0.18)' : '1.5px solid transparent',
-      }}>
-        {value}
-      </div>
-      {editable && (
-        <div style={{ display:'flex', gap:6 }}>
-          {([[-1,'−'],[1,'+']] as [number,string][]).map(([delta, label]) => (
-            <button key={label}
-              disabled={delta < 0 ? value <= 0 : value >= 19}
-              onClick={() => onChange?.(value + delta)}
-              style={{
-                width:30, height:26, borderRadius:8, border:'1px solid var(--line)',
-                background:'#fff', color:'var(--teal)', cursor:'pointer',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:16, fontWeight:700, lineHeight:1, padding:0,
-                opacity: (delta < 0 && value <= 0) || (delta > 0 && value >= 19) ? 0.35 : 1,
-                fontFamily:'var(--font)',
-              }}>
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Team display ───────────────────────────────────────────────
-function TeamDisplay({ name }: { name: string }) {
-  const t = getTeam(name)
-  return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:7, textAlign:'center' }}>
-      <div style={{
-        width:46, height:46, borderRadius:13,
-        background: hexAlpha(t.color, 0.12),
-        display:'flex', alignItems:'center', justifyContent:'center',
-        fontSize:26, lineHeight:1,
-        boxShadow:'inset 0 0 0 1px rgba(0,0,0,0.05)',
-      }}>
-        {t.flag}
-      </div>
-      <div style={{
-        fontSize:12.5, fontWeight:600, lineHeight:1.2, letterSpacing:'-0.01em',
-        maxWidth:92,
-      }}>
-        {name}
-      </div>
-    </div>
-  )
-}
-
-// ── Match Card ─────────────────────────────────────────────────
-function MatchCard({
-  match, pred, savedPred, onPredChange, onSave, hint,
-}: {
-  match: Match
-  pred: LocalPred
-  savedPred: Prediction | null
-  onPredChange: (p: LocalPred) => void
-  onSave: () => void
-  hint?: any
-}) {
-  const open = match.status === 'Upcoming'
-  const locked = match.status === 'Locked' || match.status === 'In Progress'
-  const finished = match.status === 'Finished'
-
-  const isDraw = pred.home === pred.away
-  const needsAdvancing = match.is_knockout && isDraw
-  const dirty = !savedPred
-    || savedPred.pred_score_home !== pred.home
-    || savedPred.pred_score_away !== pred.away
-    || savedPred.pred_advancing_team !== pred.advancing
-  const canSave = open && dirty && (!needsAdvancing || !!pred.advancing)
-
-  const displayHome = finished && match.actual_score_home !== null ? match.actual_score_home : pred.home
-  const displayAway = finished && match.actual_score_away !== null ? match.actual_score_away : pred.away
-
-  const earnedPts = savedPred?.earned_points ?? 0
-
-  const sbClass = open
-    ? { bg:'#e7f6ed', color:'var(--green)', ledBg:'var(--green)', label:'Odprto' }
-    : locked
-    ? { bg:'#fde8e8', color:'var(--red)', ledBg:'var(--red)', label:'Zaklenjeno' }
-    : { bg:'#eef0f2', color:'#475467', ledBg:'#98a2b3', label:'Končano' }
-
-  return (
-    <div style={{
-      background:'var(--card)', margin:'0 16px 12px',
-      borderRadius:20, border:'1px solid var(--line)',
-      boxShadow:'0 1px 2px rgba(16,24,40,0.04), 0 8px 24px rgba(16,24,40,0.05)',
-      overflow:'hidden',
-    }}>
-      {/* Header */}
-      <div style={{
-        display:'flex', alignItems:'center', justifyContent:'space-between',
-        padding:'11px 16px', borderBottom:'1px solid var(--line)',
-        fontSize:12, color:'var(--muted)',
-      }}>
-        <span style={{ fontWeight:500, letterSpacing:'-0.01em' }}>{fmtDate(match.match_time_utc)}</span>
-        <span style={{
-          fontSize:10.5, fontWeight:650, letterSpacing:'0.04em',
-          padding:'4px 9px', borderRadius:999, textTransform:'uppercase',
-          display:'inline-flex', alignItems:'center', gap:5,
-          background:sbClass.bg, color:sbClass.color,
-        }}>
-          <span style={{ width:6, height:6, borderRadius:'50%', background:sbClass.ledBg, display:'inline-block' }} />
-          {sbClass.label}
-        </span>
-      </div>
-
-      {/* Body */}
-      <div style={{ padding:'16px 14px' }}>
-        {/* Match row */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:6 }}>
-          <TeamDisplay name={match.home_team} />
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <Stepper value={displayHome} editable={open}
-              onChange={v => onPredChange({ ...pred, home:v })} />
-            <span style={{ fontSize:22, fontWeight:700, color:'#cbd2d9' }}>:</span>
-            <Stepper value={displayAway} editable={open}
-              onChange={v => onPredChange({ ...pred, away:v })} />
-          </div>
-          <TeamDisplay name={match.away_team} />
-        </div>
-
-        {/* Match hint */}
-        {SHOW_HINTS && open && hint && (() => {
-          const data = hintFromSupabase(hint, match.home_team, match.away_team)
-          return data ? <MatchHint data={data} /> : null
-        })()}
-
-        {/* Knockout advancing selector */}
-        {open && needsAdvancing && (
-          <div style={{
-            marginTop:14, padding:'13px 14px', borderRadius:14,
-            background:'#ecfdf5', border:'1px solid #b9e7d4',
-          }}>
-            <div style={{ fontSize:12.5, color:'#065f46', fontWeight:600, lineHeight:1.4, display:'flex', gap:7 }}>
-              <span>🟢</span>
-              <span>Napovedal si remi v izločilnih bojih — kdo napreduje?</span>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:11 }}>
-              {[match.home_team, match.away_team].map(team => {
-                const t = getTeam(team)
-                const selected = pred.advancing === team
-                return (
-                  <button key={team}
-                    onClick={() => onPredChange({ ...pred, advancing: team })}
-                    style={{
-                      border: selected ? '1.5px solid var(--teal)' : '1.5px solid #cdeadd',
-                      background: selected ? 'var(--teal-light)' : '#fff',
-                      borderRadius:11, padding:'9px 8px', cursor:'pointer',
-                      fontFamily:'var(--font)',
-                      display:'flex', alignItems:'center', justifyContent:'center', gap:7,
-                      fontSize:12.5, fontWeight:600,
-                      color: selected ? 'var(--teal)' : '#374151',
-                    }}>
-                    <span>{t.flag}</span>{team}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Finished result strip */}
-        {finished && savedPred && (
-          <div style={{
-            marginTop:14, padding:'11px 14px', borderRadius:13,
-            background:'#f7f9f9', border:'1px solid var(--line)',
-            display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
-          }}>
-            <div style={{ display:'flex', alignItems:'baseline', gap:8, minWidth:0 }}>
-              <span style={{ fontSize:11.5, color:'var(--muted)', fontWeight:500, whiteSpace:'nowrap' }}>
-                Tvoja napoved
-              </span>
-              <span style={{ fontSize:15, fontWeight:700, fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap' }}>
-                {savedPred.pred_score_home} : {savedPred.pred_score_away}
-              </span>
-            </div>
-            <div style={{
-              fontSize:12, fontWeight:700, padding:'6px 11px', borderRadius:999, whiteSpace:'nowrap',
-              background: earnedPts > 0 ? 'var(--teal-light)' : '#f3f4f6',
-              color: earnedPts > 0 ? 'var(--teal)' : '#9aa1ab',
-            }}>
-              {ptLabel(earnedPts)}
-            </div>
-          </div>
-        )}
-
-        {/* Save button */}
-        {open && (
-          <button
-            disabled={!canSave}
-            onClick={onSave}
-            style={{
-              marginTop:16, width:'100%', height:46, border:'none', borderRadius:13,
-              background: !dirty ? '#e7f6ed' : 'var(--grad)',
-              color: !dirty ? 'var(--green)' : '#fff',
-              cursor: canSave ? 'pointer' : 'default',
-              fontFamily:'var(--font)', fontSize:14.5, fontWeight:650, letterSpacing:'-0.01em',
-              boxShadow: !dirty || !canSave ? 'none' : '0 6px 16px rgba(15,118,110,0.28)',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-              opacity: needsAdvancing && !pred.advancing && dirty ? 0.75 : 1,
-              transition:'all .15s',
-            }}>
-            {!dirty
-              ? <><CheckIcon /> Napoved shranjena</>
-              : needsAdvancing && !pred.advancing
-              ? 'Izberi, kdo napreduje'
-              : 'Shrani napoved'}
-          </button>
-        )}
-
-        {locked && (
-          <div style={{
-            marginTop:16, width:'100%', height:46, borderRadius:13,
-            background:'#f3f4f6', color:'#9aa1ab',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:14.5, fontWeight:650, fontFamily:'var(--font)', letterSpacing:'-0.01em',
-          }}>
-            🔒 Napovedi zaklenjene
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-      <path d="M3.5 8.5l3 3 6-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+// ── Adapter: Supabase Match → CardMatch ───────────────────────
+function toCardMatch(m: Match, savedPred: Prediction | null, hint: any): CardMatch {
+  const home = getTeam(m.home_team)
+  const away = getTeam(m.away_team)
+  const status: CardMatch['status'] =
+    m.status === 'Finished' ? 'finished' :
+    (m.status === 'Locked' || m.status === 'In Progress') ? 'locked' : 'open'
+  return {
+    id: m.id,
+    whenLabel: fmtDate(m.match_time_utc),
+    home: { code: m.home_team.slice(0, 3).toUpperCase(), name: m.home_team, flag: home.flag },
+    away: { code: m.away_team.slice(0, 3).toUpperCase(), name: m.away_team, flag: away.flag },
+    isKnockout: m.is_knockout,
+    status,
+    actual:
+      m.actual_score_home !== null && m.actual_score_away !== null
+        ? { home: m.actual_score_home, away: m.actual_score_away }
+        : null,
+    earned: savedPred?.earned_points ?? null,
+    hint: SHOW_HINTS && status === 'open' && hint
+      ? hintFromSupabase(hint, m.home_team, m.away_team) : null,
+  }
 }
 
 // ── Toast ──────────────────────────────────────────────────────
@@ -637,17 +405,22 @@ export default function MatchesClient({
               V tej fazi trenutno ni tekem.
             </div>
           ) : (
-            filteredMatches.map(match => (
-              <MatchCard
-                key={match.id}
-                match={match}
-                pred={local[match.id] ?? { home:0, away:0, advancing:null }}
-                savedPred={saved[match.id] ?? null}
-                onPredChange={p => setLocal(prev => ({ ...prev, [match.id]: p }))}
-                onSave={() => handleSave(match.id)}
-                hint={hints[match.id]}
-              />
-            ))
+            <div className="flex flex-col gap-3 px-4">
+              {filteredMatches.map(match => {
+                const lp = local[match.id] ?? { home: 0, away: 0, advancing: null }
+                const sp = saved[match.id] ?? null
+                return (
+                  <MatchCard
+                    key={match.id}
+                    match={toCardMatch(match, sp, hints[match.id])}
+                    pred={{ home: lp.home, away: lp.away, advancing: lp.advancing ?? undefined }}
+                    saved={sp ? { home: sp.pred_score_home, away: sp.pred_score_away, advancing: sp.pred_advancing_team ?? undefined } : null}
+                    onChange={p => setLocal(prev => ({ ...prev, [match.id]: { home: p.home, away: p.away, advancing: p.advancing ?? null } }))}
+                    onSave={() => handleSave(match.id)}
+                  />
+                )
+              })}
+            </div>
           )}
         </>
       )}

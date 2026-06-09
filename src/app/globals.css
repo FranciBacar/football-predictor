@@ -24,6 +24,23 @@
   --goodish-gray: #f4f6f5;
 }
 
+/* ── Goodish design system tokens ──────────────────────────── */
+:root {
+  --gf-teal:        #0f766e;  --gf-teal-dk:   #0c5f58;  --gf-mint:       #2dd4bf;
+  --gf-teal-tint:   #e9f7f5;  --gf-ink:       #15201d;  --gf-muted:      #6b7280;
+  --gf-faint:       #9aa1ab;  --gf-line:      #ebeeec;  --gf-surface:    #ffffff;
+  --gf-page:        #eef2f1;  --gf-subtle:    #fafbfb;  --gf-field:      #f4f7f6;
+  --gf-green:       #15803d;  --gf-green-tint:#eaf6f0;
+  --gf-red:         #c0392b;  --gf-red-tint:  #fdf1f0;  --gf-away:       #e8722a;
+  --gf-gold-1:  #f3d989; --gf-gold-2:   #d8b24a; --gf-gold-ink:   #7a5a12;
+  --gf-silver-1:#eef1f4; --gf-silver-2: #bdc4cd; --gf-silver-ink: #5a626c;
+  --gf-bronze-1:#ecca9f; --gf-bronze-2: #c08a55; --gf-bronze-ink: #6e4824;
+  --gf-r-card:18px; --gf-r-control:13px; --gf-r-pill:999px; --gf-r-tile:14px;
+  --gf-shadow-card: 0 1px 2px rgba(16,24,40,0.03), 0 10px 26px rgba(16,24,40,0.05);
+  --gf-grad-avatar: linear-gradient(140deg,#0f766e,#2dd4bf);
+  --gf-grad-lean:   linear-gradient(90deg,#0f766e 0%,#d7dee2 50%,#f97316 100%);
+}
+
 * { box-sizing: border-box; }
 
 .hide-scrollbar::-webkit-scrollbar { display: none; }
