@@ -413,7 +413,7 @@ export default function MatchesClient({
   const [saving, setSaving] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastMsg>(null)
   const [hints, setHints] = useState<Record<string, any>>({})
-  const [mode, setMode] = useState<'groups' | 'days'>('groups')
+  const [mode, setMode] = useState<'groups' | 'days'>('days')
 
   // Fetch hints
   useEffect(() => {
