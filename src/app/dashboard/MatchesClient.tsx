@@ -548,18 +548,6 @@ export default function MatchesClient({
       <div style={{ padding:'0 16px 12px' }}>
         <div style={{ display:'flex', gap:4, background:'#eef2f1', borderRadius:13, padding:4 }}>
           <button
-            onClick={() => setMode('groups')}
-            style={{
-              flex:1, padding:'9px 0', borderRadius:10, border:'none', cursor:'pointer',
-              fontFamily:'var(--font)', fontSize:13, fontWeight:600,
-              transition:'background .18s, color .18s, box-shadow .18s',
-              background: mode === 'groups' ? '#fff' : 'transparent',
-              color: mode === 'groups' ? '#0f766e' : '#6b7280',
-              boxShadow: mode === 'groups' ? '0 1px 3px rgba(16,24,40,0.10)' : 'none',
-            }}>
-            Po skupinah
-          </button>
-          <button
             onClick={() => setMode('days')}
             style={{
               flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6,
@@ -582,6 +570,18 @@ export default function MatchesClient({
                 {openUnpredicted}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setMode('groups')}
+            style={{
+              flex:1, padding:'9px 0', borderRadius:10, border:'none', cursor:'pointer',
+              fontFamily:'var(--font)', fontSize:13, fontWeight:600,
+              transition:'background .18s, color .18s, box-shadow .18s',
+              background: mode === 'groups' ? '#fff' : 'transparent',
+              color: mode === 'groups' ? '#0f766e' : '#6b7280',
+              boxShadow: mode === 'groups' ? '0 1px 3px rgba(16,24,40,0.10)' : 'none',
+            }}>
+            Po skupinah
           </button>
         </div>
       </div>
