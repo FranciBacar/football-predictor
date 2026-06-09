@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Filtriraj samo odrasle (ne otroške profile — ti nimajo emaila)
-  const recipients = users.filter(u => u.email && u.email.includes('@'))
+  const recipients = users.filter(u => u.email && u.email.includes('@') && !u.email.includes('@internal.fp2026'))
   const userCount = recipients.length
 
   if (dryRun) {
@@ -52,17 +52,17 @@ export async function GET(req: NextRequest) {
       .replace(/\{\{ first_name \}\}/g, firstName)
       .replace(/\{\{ user_count \}\}/g, String(userCount))
 
-    try {
-      await resend.emails.send({
-        from: 'Franci Bačar <franci@goodish.agency>',
-        to: user.email,
-        subject: '⚽ SP 2026 se začenja — dve novosti za tebe',
-        html,
-      })
-      sent++
-    } catch (e: any) {
+    const { error: sendError } = await resend.emails.send({
+      from: 'Franci Bačar <franci@greatish.app>',
+      to: user.email,
+      subject: '⚽ SP 2026 se začenja — dve novosti za tebe',
+      html,
+    })
+    if (sendError) {
       failed++
-      errors.push(`${user.email}: ${e.message}`)
+      errors.push(`${user.email}: ${sendError.message}`)
+    } else {
+      sent++
     }
 
     // Kratka pavza med emaili da ne zadenemo rate limit
