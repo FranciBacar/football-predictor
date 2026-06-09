@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Trophy, Medal } from 'lucide-react'
 import Image from 'next/image'
+import { ScoringSummary } from '@/components/GameRules'
 
 type LeaderboardEntry = {
   user_id: string
@@ -177,16 +178,7 @@ export default function LeaderboardClient({
       )}
 
       {/* Scoring rules */}
-      <div className="rounded-xl p-4 text-sm text-gray-600 border" style={{ background: 'var(--goodish-green-light)', borderColor: '#99e6dd' }}>
-        <p className="font-semibold mb-2" style={{ color: 'var(--goodish-green)' }}>Sistem točkovanja</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-          <span>🎯 Točen rezultat (2:1 → 2:1)</span><span className="font-bold text-right">3 točke</span>
-          <span>📐 Pravilen tip + zadetki ene ekipe (3:1 → 2:1)</span><span className="font-bold text-right">2 točki</span>
-          <span>✅ Pravilen tip (zmagovalec ali remi)</span><span className="font-bold text-right">1 točka</span>
-          <span>⚡ Od 1/8 finala naprej</span><span className="font-bold text-right">× 2 točke</span>
-        </div>
-        <p className="mt-3 text-xs text-gray-500">Točke vključujejo posebne napovedi: zmagovalec SP, strelec, MVP (+10 vsak) in zmagovalci skupin (+3 vsaka).</p>
-      </div>
+      <ScoringSummary />
     </div>
   )
 }
