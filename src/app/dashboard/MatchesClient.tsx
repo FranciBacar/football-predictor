@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { getTeam, hexAlpha } from '@/lib/teamData'
 import MatchHint, { hintFromSupabase } from '@/components/MatchHint'
+import ScheduleView from '@/components/ScheduleView'
+import type { Match as ScheduleMatch, Score } from '@/components/ScheduleRow'
 
 const SHOW_HINTS = process.env.NEXT_PUBLIC_SHOW_HINTS === 'true'
 
@@ -66,6 +68,42 @@ function ptLabel(pts: number): string {
   if (pts === 2) return '+2 točki'
   if (pts === 3 || pts === 4) return `+${pts} točke`
   return '0 točk'
+}
+
+// ── Adapter: Supabase Match → ScheduleRow Match ────────────────
+function toScheduleMatch(
+  m: Match,
+  savedPred: Prediction | null,
+  hint: any,
+): ScheduleMatch {
+  const homeTeam = getTeam(m.home_team)
+  const awayTeam = getTeam(m.away_team)
+
+  let status: ScheduleMatch['status']
+  if (m.status === 'Finished') status = 'finished'
+  else if (m.status === 'Locked' || m.status === 'In Progress') status = 'locked'
+  else status = 'open'
+
+  const hintData =
+    hint && SHOW_HINTS && status === 'open'
+      ? hintFromSupabase(hint, m.home_team, m.away_team)
+      : null
+
+  return {
+    id: m.id,
+    stage: STAGE_LABELS[m.stage] ?? m.stage,
+    kickoffUtc: new Date(m.match_time_utc).getTime(),
+    home: { code: m.home_team.slice(0, 3).toUpperCase(), name: m.home_team, flag: homeTeam.flag },
+    away: { code: m.away_team.slice(0, 3).toUpperCase(), name: m.away_team, flag: awayTeam.flag },
+    isKnockout: m.is_knockout,
+    status,
+    actual:
+      m.actual_score_home !== null && m.actual_score_away !== null
+        ? { home: m.actual_score_home, away: m.actual_score_away }
+        : null,
+    earned: savedPred?.earned_points ?? null,
+    hint: hintData,
+  }
 }
 
 // ── Stepper ────────────────────────────────────────────────────
@@ -279,9 +317,7 @@ function MatchCard({
             onClick={onSave}
             style={{
               marginTop:16, width:'100%', height:46, border:'none', borderRadius:13,
-              background: !dirty
-                ? '#e7f6ed'
-                : canSave ? 'var(--grad)' : 'var(--grad)',
+              background: !dirty ? '#e7f6ed' : 'var(--grad)',
               color: !dirty ? 'var(--green)' : '#fff',
               cursor: canSave ? 'pointer' : 'default',
               fontFamily:'var(--font)', fontSize:14.5, fontWeight:650, letterSpacing:'-0.01em',
@@ -298,7 +334,7 @@ function MatchCard({
           </button>
         )}
 
-        {(locked) && (
+        {locked && (
           <div style={{
             marginTop:16, width:'100%', height:46, borderRadius:13,
             background:'#f3f4f6', color:'#9aa1ab',
@@ -358,7 +394,7 @@ export default function MatchesClient({
     return acc
   })
 
-  // Local (potentially dirty) state keyed by match_id
+  // Local (potentially dirty) state keyed by match_id (skupinski pogled)
   const [local, setLocal] = useState<Record<string, LocalPred>>(() => {
     const acc: Record<string, LocalPred> = {}
     initialPredictions.forEach(p => {
@@ -368,7 +404,6 @@ export default function MatchesClient({
         advancing: p.pred_advancing_team ?? null,
       }
     })
-    // Default 0:0 for matches without predictions
     matches.forEach(m => {
       if (!acc[m.id]) acc[m.id] = { home: 0, away: 0, advancing: null }
     })
@@ -378,8 +413,9 @@ export default function MatchesClient({
   const [saving, setSaving] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastMsg>(null)
   const [hints, setHints] = useState<Record<string, any>>({})
+  const [mode, setMode] = useState<'groups' | 'days'>('groups')
 
-  // Fetch hints samo če je feature flag vklopljen
+  // Fetch hints
   useEffect(() => {
     if (!SHOW_HINTS) return
     const matchIds = matches.map(m => m.id)
@@ -415,6 +451,32 @@ export default function MatchesClient({
     [matches, activeStage]
   )
 
+  // Število nenapovedanih odprtih tekem (za značko)
+  const openUnpredicted = useMemo(
+    () => matches.filter(m => m.status === 'Upcoming' && !saved[m.id]).length,
+    [matches, saved]
+  )
+
+  // Napovedi za ScheduleView (Record<match_id, Score>)
+  const schedPredictions = useMemo<Record<string, Score>>(() => {
+    const out: Record<string, Score> = {}
+    Object.entries(saved).forEach(([id, p]) => {
+      out[id] = {
+        home: p.pred_score_home,
+        away: p.pred_score_away,
+        advancing: p.pred_advancing_team ?? undefined,
+      }
+    })
+    return out
+  }, [saved])
+
+  // Tekme za ScheduleView
+  const schedMatches = useMemo<ScheduleMatch[]>(
+    () => matches.map(m => toScheduleMatch(m, saved[m.id] ?? null, hints[m.id])),
+    [matches, saved, hints]
+  )
+
+  // Shranjevanje v skupinskem pogledu
   const handleSave = async (matchId: string) => {
     const pred = local[matchId]
     if (!pred || saving) return
@@ -447,55 +509,138 @@ export default function MatchesClient({
     setSaving(null)
   }
 
+  // Shranjevanje v "Po dnevih" pogledu
+  const handleScheduleSave = useCallback(async (matchId: string, score: Score) => {
+    const { error } = await supabase.from('predictions').upsert({
+      user_id: userId,
+      match_id: matchId,
+      pred_score_home: score.home,
+      pred_score_away: score.away,
+      pred_advancing_team: score.advancing ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id, match_id' })
+
+    if (error) {
+      showToast({ icon: '❌', text: 'Napaka pri shranjevanju' })
+    } else {
+      setSaved(prev => ({
+        ...prev,
+        [matchId]: {
+          match_id: matchId,
+          pred_score_home: score.home,
+          pred_score_away: score.away,
+          pred_advancing_team: score.advancing ?? null,
+          earned_points: prev[matchId]?.earned_points ?? 0,
+        }
+      }))
+      setLocal(prev => ({
+        ...prev,
+        [matchId]: { home: score.home, away: score.away, advancing: score.advancing ?? null },
+      }))
+      showToast({ icon: '✓', text: 'Napoved shranjena' })
+    }
+  }, [supabase, userId, showToast])
+
   return (
     <div style={{ fontFamily: 'var(--font)' }}>
-      {/* Stage pill selector */}
-      <div style={{
-        display:'flex', flexWrap:'wrap', gap:8,
-        padding:'6px 16px 14px',
-      }}>
-        {availableStages.map(stage => {
-          const active = stage === activeStage
-          return (
-            <button key={stage}
-              onClick={() => setActiveStage(stage)}
-              style={{
-                flex:'0 0 auto',
-                border: active ? 'none' : '1px solid var(--line)',
-                background: active ? 'var(--grad)' : '#fff',
-                color: active ? '#fff' : '#374151',
-                fontFamily:'var(--font)', fontSize:13, fontWeight:550,
-                padding:'8px 14px', borderRadius:999, cursor:'pointer',
-                whiteSpace:'nowrap', letterSpacing:'-0.01em',
-                boxShadow: active ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
-                transition:'all .15s',
-              }}>
-              {STAGE_LABELS[stage] ?? stage}
-            </button>
-          )
-        })}
+
+      {/* ── Mode switcher ─────────────────────────────────────── */}
+      <div style={{ display:'flex', gap:6, padding:'0 16px 14px' }}>
+        <button
+          onClick={() => setMode('groups')}
+          style={{
+            flex:'0 0 auto', padding:'7px 14px', borderRadius:999,
+            fontSize:13, fontWeight:600, fontFamily:'var(--font)', cursor:'pointer',
+            transition:'all .15s',
+            border: mode === 'groups' ? 'none' : '1px solid var(--line)',
+            background: mode === 'groups' ? 'var(--grad)' : '#fff',
+            color: mode === 'groups' ? '#fff' : '#374151',
+            boxShadow: mode === 'groups' ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
+          }}>
+          🏟️ Po skupinah
+        </button>
+        <button
+          onClick={() => setMode('days')}
+          style={{
+            flex:'0 0 auto', display:'flex', alignItems:'center', gap:6,
+            padding:'7px 14px', borderRadius:999,
+            fontSize:13, fontWeight:600, fontFamily:'var(--font)', cursor:'pointer',
+            transition:'all .15s',
+            border: mode === 'days' ? 'none' : '1px solid var(--line)',
+            background: mode === 'days' ? 'var(--grad)' : '#fff',
+            color: mode === 'days' ? '#fff' : '#374151',
+            boxShadow: mode === 'days' ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
+          }}>
+          🗓️ Po dnevih
+          {openUnpredicted > 0 && (
+            <span style={{
+              display:'inline-flex', alignItems:'center', justifyContent:'center',
+              minWidth:18, height:18, borderRadius:999, padding:'0 5px',
+              fontSize:10, fontWeight:800,
+              background: mode === 'days' ? 'rgba(255,255,255,0.3)' : '#f59e0b',
+              color: '#fff',
+            }}>
+              {openUnpredicted}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Match cards */}
-      {filteredMatches.length === 0 ? (
-        <div style={{
-          margin:'0 16px', padding:'48px 16px', textAlign:'center',
-          border:'1px dashed var(--line)', borderRadius:20, color:'var(--muted)', fontSize:14,
-        }}>
-          V tej fazi trenutno ni tekem.
-        </div>
+      {/* ── Po dnevih ─────────────────────────────────────────── */}
+      {mode === 'days' ? (
+        <ScheduleView
+          matches={schedMatches}
+          predictions={schedPredictions}
+          onSave={handleScheduleSave}
+        />
       ) : (
-        filteredMatches.map(match => (
-          <MatchCard
-            key={match.id}
-            match={match}
-            pred={local[match.id] ?? { home:0, away:0, advancing:null }}
-            savedPred={saved[match.id] ?? null}
-            onPredChange={p => setLocal(prev => ({ ...prev, [match.id]: p }))}
-            onSave={() => handleSave(match.id)}
-            hint={hints[match.id]}
-          />
-        ))
+        <>
+          {/* ── Stage pill selector ──────────────────────────── */}
+          <div style={{ display:'flex', flexWrap:'wrap', gap:8, padding:'6px 16px 14px' }}>
+            {availableStages.map(stage => {
+              const active = stage === activeStage
+              return (
+                <button key={stage}
+                  onClick={() => setActiveStage(stage)}
+                  style={{
+                    flex:'0 0 auto',
+                    border: active ? 'none' : '1px solid var(--line)',
+                    background: active ? 'var(--grad)' : '#fff',
+                    color: active ? '#fff' : '#374151',
+                    fontFamily:'var(--font)', fontSize:13, fontWeight:550,
+                    padding:'8px 14px', borderRadius:999, cursor:'pointer',
+                    whiteSpace:'nowrap', letterSpacing:'-0.01em',
+                    boxShadow: active ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
+                    transition:'all .15s',
+                  }}>
+                  {STAGE_LABELS[stage] ?? stage}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* ── Match cards ──────────────────────────────────── */}
+          {filteredMatches.length === 0 ? (
+            <div style={{
+              margin:'0 16px', padding:'48px 16px', textAlign:'center',
+              border:'1px dashed var(--line)', borderRadius:20, color:'var(--muted)', fontSize:14,
+            }}>
+              V tej fazi trenutno ni tekem.
+            </div>
+          ) : (
+            filteredMatches.map(match => (
+              <MatchCard
+                key={match.id}
+                match={match}
+                pred={local[match.id] ?? { home:0, away:0, advancing:null }}
+                savedPred={saved[match.id] ?? null}
+                onPredChange={p => setLocal(prev => ({ ...prev, [match.id]: p }))}
+                onSave={() => handleSave(match.id)}
+                hint={hints[match.id]}
+              />
+            ))
+          )}
+        </>
       )}
 
       <Toast msg={toast} />
