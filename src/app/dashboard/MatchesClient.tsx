@@ -544,46 +544,46 @@ export default function MatchesClient({
   return (
     <div style={{ fontFamily: 'var(--font)' }}>
 
-      {/* ── Mode switcher ─────────────────────────────────────── */}
-      <div style={{ display:'flex', gap:6, padding:'0 16px 14px' }}>
-        <button
-          onClick={() => setMode('groups')}
-          style={{
-            flex:'0 0 auto', padding:'7px 14px', borderRadius:999,
-            fontSize:13, fontWeight:600, fontFamily:'var(--font)', cursor:'pointer',
-            transition:'all .15s',
-            border: mode === 'groups' ? 'none' : '1px solid var(--line)',
-            background: mode === 'groups' ? 'var(--grad)' : '#fff',
-            color: mode === 'groups' ? '#fff' : '#374151',
-            boxShadow: mode === 'groups' ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
-          }}>
-          🏟️ Po skupinah
-        </button>
-        <button
-          onClick={() => setMode('days')}
-          style={{
-            flex:'0 0 auto', display:'flex', alignItems:'center', gap:6,
-            padding:'7px 14px', borderRadius:999,
-            fontSize:13, fontWeight:600, fontFamily:'var(--font)', cursor:'pointer',
-            transition:'all .15s',
-            border: mode === 'days' ? 'none' : '1px solid var(--line)',
-            background: mode === 'days' ? 'var(--grad)' : '#fff',
-            color: mode === 'days' ? '#fff' : '#374151',
-            boxShadow: mode === 'days' ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
-          }}>
-          🗓️ Po dnevih
-          {openUnpredicted > 0 && (
-            <span style={{
-              display:'inline-flex', alignItems:'center', justifyContent:'center',
-              minWidth:18, height:18, borderRadius:999, padding:'0 5px',
-              fontSize:10, fontWeight:800,
-              background: mode === 'days' ? 'rgba(255,255,255,0.3)' : '#f59e0b',
-              color: '#fff',
+      {/* ── Mode switcher — segmentni kontrol ────────────────── */}
+      <div style={{ padding:'0 16px 12px' }}>
+        <div style={{ display:'flex', gap:4, background:'#eef2f1', borderRadius:13, padding:4 }}>
+          <button
+            onClick={() => setMode('groups')}
+            style={{
+              flex:1, padding:'9px 0', borderRadius:10, border:'none', cursor:'pointer',
+              fontFamily:'var(--font)', fontSize:13, fontWeight:600,
+              transition:'background .18s, color .18s, box-shadow .18s',
+              background: mode === 'groups' ? '#fff' : 'transparent',
+              color: mode === 'groups' ? '#0f766e' : '#6b7280',
+              boxShadow: mode === 'groups' ? '0 1px 3px rgba(16,24,40,0.10)' : 'none',
             }}>
-              {openUnpredicted}
-            </span>
-          )}
-        </button>
+            Po skupinah
+          </button>
+          <button
+            onClick={() => setMode('days')}
+            style={{
+              flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+              padding:'9px 0', borderRadius:10, border:'none', cursor:'pointer',
+              fontFamily:'var(--font)', fontSize:13, fontWeight:600,
+              transition:'background .18s, color .18s, box-shadow .18s',
+              background: mode === 'days' ? '#fff' : 'transparent',
+              color: mode === 'days' ? '#0f766e' : '#6b7280',
+              boxShadow: mode === 'days' ? '0 1px 3px rgba(16,24,40,0.10)' : 'none',
+            }}>
+            Po dnevih
+            {openUnpredicted > 0 && (
+              <span style={{
+                display:'inline-flex', alignItems:'center', justifyContent:'center',
+                minWidth:17, height:17, borderRadius:999, padding:'0 4px',
+                fontSize:10, fontWeight:700,
+                background: mode === 'days' ? '#e6faf8' : '#dfe4e3',
+                color: mode === 'days' ? '#0f766e' : '#5b6470',
+              }}>
+                {openUnpredicted}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ── Po dnevih ─────────────────────────────────────────── */}
@@ -595,28 +595,37 @@ export default function MatchesClient({
         />
       ) : (
         <>
-          {/* ── Stage pill selector ──────────────────────────── */}
-          <div style={{ display:'flex', flexWrap:'wrap', gap:8, padding:'6px 16px 14px' }}>
-            {availableStages.map(stage => {
-              const active = stage === activeStage
-              return (
-                <button key={stage}
-                  onClick={() => setActiveStage(stage)}
-                  style={{
-                    flex:'0 0 auto',
-                    border: active ? 'none' : '1px solid var(--line)',
-                    background: active ? 'var(--grad)' : '#fff',
-                    color: active ? '#fff' : '#374151',
-                    fontFamily:'var(--font)', fontSize:13, fontWeight:550,
-                    padding:'8px 14px', borderRadius:999, cursor:'pointer',
-                    whiteSpace:'nowrap', letterSpacing:'-0.01em',
-                    boxShadow: active ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
-                    transition:'all .15s',
-                  }}>
-                  {STAGE_LABELS[stage] ?? stage}
-                </button>
-              )
-            })}
+          {/* ── Stage selector — vodoravni drsnik (varianta A) ── */}
+          <div style={{
+            position:'relative', padding:'6px 0 10px',
+            maskImage:'linear-gradient(90deg, black 0%, black 90%, transparent 100%)',
+            WebkitMaskImage:'linear-gradient(90deg, black 0%, black 90%, transparent 100%)',
+          }}>
+            <div style={{
+              display:'flex', gap:8, overflowX:'auto', padding:'2px 16px 4px',
+              scrollbarWidth:'none', msOverflowStyle:'none',
+            }}
+            className="hide-scrollbar">
+              {availableStages.map(stage => {
+                const active = stage === activeStage
+                return (
+                  <button key={stage}
+                    onClick={() => setActiveStage(stage)}
+                    style={{
+                      flexShrink:0,
+                      border: active ? '1px solid #0f766e' : '1px solid #e6e9e8',
+                      background: active ? '#0f766e' : '#fff',
+                      color: active ? '#fff' : '#374151',
+                      fontFamily:'var(--font)', fontSize:13, fontWeight:600,
+                      padding:'8px 15px', borderRadius:10, cursor:'pointer',
+                      whiteSpace:'nowrap', letterSpacing:'-0.01em',
+                      transition:'background .15s, color .15s, border-color .15s',
+                    }}>
+                    {STAGE_LABELS[stage] ?? stage}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* ── Match cards ──────────────────────────────────── */}

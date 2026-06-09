@@ -37,8 +37,8 @@ export default async function DashboardPage({
         {/* Greeting */}
         <div style={{ padding:'16px 20px 14px', display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
           <div>
-            <h1 style={{ fontSize:25, fontWeight:700, margin:0, letterSpacing:'-0.02em' }}>
-              Pozdravljen, {firstName}! ⚽
+            <h1 style={{ fontSize:24, fontWeight:750, margin:0, letterSpacing:'-0.02em' }}>
+              Pozdravljen, {firstName}!
             </h1>
             <p style={{ margin:'4px 0 0', fontSize:13.5, color:'var(--muted)', lineHeight:1.4 }}>
               Vnesi napovedi za prihajajoče tekme. Napovedi se zaklenejo 15 min pred začetkom.
@@ -52,40 +52,40 @@ export default async function DashboardPage({
           }}>
             {avatar
               ? <img src={avatar} alt={firstName} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-              : '⚽'}
+              : <span style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em' }}>{firstName.charAt(0).toUpperCase()}</span>}
           </div>
         </div>
 
-        {/* Main tab switcher */}
-        <div style={{ display:'flex', gap:8, padding:'0 16px 16px' }}>
-          <a
-            href="/dashboard"
-            data-tour="matches-tab"
-            style={{
-              padding:'8px 18px', borderRadius:999, fontSize:13.5, fontWeight:600,
-              textDecoration:'none', transition:'all .15s',
-              background: activeTab === 'napovedi' ? 'linear-gradient(115deg,#0f766e 0%,#2dd4bf 100%)' : '#fff',
-              color: activeTab === 'napovedi' ? '#fff' : '#374151',
-              border: activeTab === 'napovedi' ? 'none' : '1px solid #e5e7eb',
-              boxShadow: activeTab === 'napovedi' ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
-            }}
-          >
-            ⚽ Napovedi tekem
-          </a>
-          <a
-            href="/dashboard?tab=posebne"
-            data-tour="special-tab"
-            style={{
-              padding:'8px 18px', borderRadius:999, fontSize:13.5, fontWeight:600,
-              textDecoration:'none', transition:'all .15s',
-              background: activeTab === 'posebne' ? 'linear-gradient(115deg,#0f766e 0%,#2dd4bf 100%)' : '#fff',
-              color: activeTab === 'posebne' ? '#fff' : '#374151',
-              border: activeTab === 'posebne' ? 'none' : '1px solid #e5e7eb',
-              boxShadow: activeTab === 'posebne' ? '0 4px 14px rgba(15,118,110,0.30)' : 'none',
-            }}
-          >
-            🔮 Posebne napovedi
-          </a>
+        {/* Main tab switcher — segmentni kontrol */}
+        <div style={{ padding:'0 16px 14px' }}>
+          <div style={{ display:'flex', gap:4, background:'#eef2f1', borderRadius:13, padding:4 }}>
+            <a
+              href="/dashboard"
+              data-tour="matches-tab"
+              style={{
+                flex:1, padding:'9px 0', borderRadius:10, fontSize:13, fontWeight:600,
+                textDecoration:'none', textAlign:'center', transition:'background .18s, color .18s, box-shadow .18s',
+                background: activeTab === 'napovedi' ? '#fff' : 'transparent',
+                color: activeTab === 'napovedi' ? '#0f766e' : '#6b7280',
+                boxShadow: activeTab === 'napovedi' ? '0 1px 3px rgba(16,24,40,0.10)' : 'none',
+              }}
+            >
+              Napovedi tekem
+            </a>
+            <a
+              href="/dashboard?tab=posebne"
+              data-tour="special-tab"
+              style={{
+                flex:1, padding:'9px 0', borderRadius:10, fontSize:13, fontWeight:600,
+                textDecoration:'none', textAlign:'center', transition:'background .18s, color .18s, box-shadow .18s',
+                background: activeTab === 'posebne' ? '#fff' : 'transparent',
+                color: activeTab === 'posebne' ? '#0f766e' : '#6b7280',
+                boxShadow: activeTab === 'posebne' ? '0 1px 3px rgba(16,24,40,0.10)' : 'none',
+              }}
+            >
+              Posebne napovedi
+            </a>
+          </div>
         </div>
 
         <DashboardWrapper
