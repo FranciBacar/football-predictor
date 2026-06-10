@@ -22,8 +22,8 @@ export type TeamLite = { name: string; flag: string };
 export type MatchHintData = {
   home: TeamLite;
   away: TeamLite;
-  /** Verjetnosti stavnic + decimalne kvote [1, X, 2] */
-  book: Probs & { odds?: [number, number, number] };
+  /** Verjetnosti stavnic + decimalne kvote [1, X, 2] — null če ni live kvot */
+  book: (Probs & { odds?: [number, number, number] }) | null;
   /** Verjetnosti matematičnega modela (Poisson + ELO) */
   model: Probs & {
     likely: string;
@@ -45,6 +45,7 @@ const PC = { home: '#0f766e', draw: '#94a3b8', away: '#f97316' } as const;
 
 /* ── konsenz = povprečje stavnic in modela ────────────────── */
 function consensus(d: MatchHintData): Probs {
+  if (!d.book) return { home: d.model.home, draw: d.model.draw, away: d.model.away };
   const avg = (a: number, b: number) => Math.round((a + b) / 2);
   return {
     home: avg(d.book.home, d.model.home),
@@ -116,14 +117,14 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
   }
 
   const sources = [
-    { key: 'book', label: 'Stavnice', dot: '#0f766e', p: data.book },
+    ...(data.book ? [{ key: 'book', label: 'Stavnice', dot: '#0f766e', p: data.book }] : []),
     { key: 'model', label: 'Model', dot: '#f97316', p: data.model },
-  ] as const;
+  ];
 
   const chips = [
     `λ ${data.model.lambdaHome}–${data.model.lambdaAway}`,
     `ELO ${data.model.eloHome}·${data.model.eloAway}`,
-    ...(data.book.odds ? [`kvote ${data.book.odds.join(' · ')}`] : []),
+    ...(data.book?.odds ? [`kvote ${data.book.odds.join(' · ')}`] : []),
   ];
 
   return (
@@ -245,16 +246,14 @@ export function hintFromSupabase(raw: any, homeTeam: string, awayTeam: string): 
   return {
     home: { name: homeTeam, flag: homeTeamData.flag },
     away: { name: awayTeam, flag: awayTeamData.flag },
-    book: {
-      home: hasOdds ? bookHome : modelHome,
-      draw: hasOdds ? bookDraw : modelDraw,
-      away: hasOdds ? bookAway : modelAway,
-      odds: hasOdds ? [
+    book: hasOdds ? {
+      home: bookHome, draw: bookDraw, away: bookAway,
+      odds: [
         Math.round(raw.odds_home * 100) / 100,
         Math.round(raw.odds_draw * 100) / 100,
         Math.round(raw.odds_away * 100) / 100,
-      ] : undefined,
-    },
+      ],
+    } : null,
     model: {
       home: modelHome,
       draw: modelDraw,
