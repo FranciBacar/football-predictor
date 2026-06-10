@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 
 const STORAGE_KEY = 'onboarding_done_v1'
+const VISITS_KEY = 'onboarding_visits_v1'
+const MAX_VISITS = 3
 
 type Step = {
   title: string
@@ -46,10 +48,11 @@ export default function OnboardingTour() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     const done = localStorage.getItem(STORAGE_KEY)
-    if (!done) {
-      // Kratek delay da se stran naloži
-      setTimeout(() => setVisible(true), 800)
-    }
+    if (done) return
+    const visits = parseInt(localStorage.getItem(VISITS_KEY) ?? '0', 10)
+    if (visits >= MAX_VISITS) return
+    localStorage.setItem(VISITS_KEY, String(visits + 1))
+    setTimeout(() => setVisible(true), 800)
   }, [])
 
   useEffect(() => {
