@@ -22,7 +22,7 @@ const TEAM_NAME_MAP: Record<string, string> = {
   'Kolumbija': 'Colombia',
   'Maroko': 'Morocco',
   'Senegal': 'Senegal',
-  'ZDA': 'United States',
+  'ZDA': 'USA',
   'Mehika': 'Mexico',
   'Japonska': 'Japan',
   'Južna Koreja': 'South Korea',
