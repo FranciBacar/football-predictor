@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { TEAM_DATA } from '@/lib/teamData'
 import SpecialPredictions, {
@@ -126,6 +126,19 @@ export default function SpecialPredictionsContainer({
   const [localState, setLocalState] = useState<SpecialState>(() => toSpecialState(initialPreds))
   const [savedState, setSavedState] = useState<SpecialState>(() => toSpecialState(initialPreds))
   const [toast, setToast] = useState<string | null>(null)
+
+  // Sync state when initialPreds changes after mount (profile switch timing issue:
+  // component remounts before DashboardWrapper's effect updates kidSpecialPreds)
+  const mountedRef = useRef(false)
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true
+      return
+    }
+    const next = toSpecialState(initialPreds)
+    setLocalState(next)
+    setSavedState(next)
+  }, [initialPreds])
 
   const showToast = (msg: string) => {
     setToast(msg)
