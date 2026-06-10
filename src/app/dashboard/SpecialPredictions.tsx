@@ -127,18 +127,19 @@ export default function SpecialPredictionsContainer({
   const [savedState, setSavedState] = useState<SpecialState>(() => toSpecialState(initialPreds))
   const [toast, setToast] = useState<string | null>(null)
 
-  // Sync state when initialPreds changes after mount (profile switch timing issue:
-  // component remounts before DashboardWrapper's effect updates kidSpecialPreds)
-  const mountedRef = useRef(false)
+  // Ob vsakem mountu (key={userId} se spremeni) fetchaj svježe podatke za tega userja.
+  // Rešuje race condition kjer DashboardWrapper posodobi initialPreds prepozno.
   useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true
-      return
-    }
-    const next = toSpecialState(initialPreds)
-    setLocalState(next)
-    setSavedState(next)
-  }, [initialPreds])
+    supabase
+      .from('special_predictions')
+      .select('*')
+      .eq('user_id', userId)
+      .then(({ data }) => {
+        const next = toSpecialState(data ?? [])
+        setLocalState(next)
+        setSavedState(next)
+      })
+  }, [userId])
 
   const showToast = (msg: string) => {
     setToast(msg)
