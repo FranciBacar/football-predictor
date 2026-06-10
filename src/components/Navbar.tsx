@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Trophy, Users, BarChart2, UserCircle } from 'lucide-react'
 import NavbarProfileSwitcher from './NavbarProfileSwitcher'
+import MobileProfileSwitcher from './MobileProfileSwitcher'
 
 export default function Navbar({ activePath }: { activePath: string }) {
   const linkBase = 'py-4 flex items-center gap-2 font-medium border-b-2 transition-colors'
@@ -37,6 +38,11 @@ export default function Navbar({ activePath }: { activePath: string }) {
           </div>
         </div>
       </nav>
+
+      {/* Mobile top bar — profile switcher */}
+      <div className="md:hidden fixed top-0 right-0 z-50 p-2">
+        <MobileProfileSwitcher />
+      </div>
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
