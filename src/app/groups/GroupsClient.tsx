@@ -206,10 +206,9 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                   <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-2">
                     {/* Code row */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-xs text-gray-400 mb-0.5">Koda za povabilo</p>
-                        <p className="text-base font-mono font-bold tracking-widest text-gray-800">{group.invite_code}</p>
-                      </div>
+                      <p className="text-sm text-gray-600 min-w-0">
+                        Koda za povabilo: <span className="font-mono font-bold tracking-widest text-gray-900">{group.invite_code}</span>
+                      </p>
                       <button
                         onClick={() => copyInviteCode(group.invite_code, group.id)}
                         className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
@@ -224,7 +223,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                     </div>
                     {/* Link row */}
                     <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-200">
-                      <p className="text-xs text-gray-400 truncate min-w-0">/join?code={group.invite_code}</p>
+                      <p className="text-xs text-gray-400 truncate min-w-0">Link za povabilo: /join?code={group.invite_code}</p>
                       <button
                         onClick={() => copyInviteLink(group.invite_code, group.id)}
                         className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
