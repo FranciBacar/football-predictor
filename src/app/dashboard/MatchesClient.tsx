@@ -74,9 +74,10 @@ function toScheduleMatch(
   const homeTeam = getTeam(m.home_team)
   const awayTeam = getTeam(m.away_team)
 
+  const timeLocked = Date.now() >= new Date(m.match_time_utc).getTime() - 15 * 60 * 1000
   let status: ScheduleMatch['status']
   if (m.status === 'Finished') status = 'finished'
-  else if (m.status === 'Locked' || m.status === 'In Progress') status = 'locked'
+  else if (m.status === 'Locked' || m.status === 'In Progress' || timeLocked) status = 'locked'
   else status = 'open'
 
   const hintData =
@@ -105,9 +106,10 @@ function toScheduleMatch(
 function toCardMatch(m: Match, savedPred: Prediction | null, hint: any): CardMatch {
   const home = getTeam(m.home_team)
   const away = getTeam(m.away_team)
+  const timeLocked = Date.now() >= new Date(m.match_time_utc).getTime() - 15 * 60 * 1000
   const status: CardMatch['status'] =
     m.status === 'Finished' ? 'finished' :
-    (m.status === 'Locked' || m.status === 'In Progress') ? 'locked' : 'open'
+    (m.status === 'Locked' || m.status === 'In Progress' || timeLocked) ? 'locked' : 'open'
   return {
     id: m.id,
     whenLabel: fmtDate(m.match_time_utc),
