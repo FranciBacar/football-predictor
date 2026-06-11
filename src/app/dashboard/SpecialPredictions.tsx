@@ -9,7 +9,7 @@ import SpecialPredictions, {
 } from '@/components/SpecialPredictions'
 
 // Zaklepanje: 11. junij 2026 ob 18:00 UTC
-const LOCK_DATE = new Date('2026-06-11T18:00:00Z')
+const LOCK_DATE = new Date('2026-06-11T22:00:00Z')
 
 type SpecialPred = {
   prediction_type: string
