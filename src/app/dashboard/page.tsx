@@ -28,7 +28,7 @@ export default async function DashboardPage({
   const firstName = (user.user_metadata?.full_name ?? user.user_metadata?.name ?? 'Navijač').split(' ')[0]
 
   return (
-    <div style={{ minHeight:'100vh', paddingBottom:80, fontFamily:'var(--font)' }} className="md:pb-0 md:pt-16">
+    <div style={{ minHeight:'100vh', paddingBottom:'calc(env(safe-area-inset-bottom) + 80px)', fontFamily:'var(--font)' }} className="md:pb-0 md:pt-16">
       <Navbar activePath="/dashboard" />
 
       <OnboardingTour userId={user.id} />

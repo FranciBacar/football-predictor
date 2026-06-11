@@ -1,5 +1,5 @@
 import './globals.css'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import CookieBanner from '@/components/CookieBanner'
 import { ProfileProvider } from '@/context/ProfileContext'
@@ -7,6 +7,10 @@ import PostHogIdentify from '@/components/PostHogIdentify'
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
+
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+}
 
 export const metadata: Metadata = {
   title: 'Goodish Football Predictor ⚽',
