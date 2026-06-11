@@ -68,8 +68,8 @@ export default async function AdminPage() {
     predictions_count: predMap[u.id] ?? 0,
   }))
 
-  // Skupini z lastniki in člani
-  const { data: groups } = await supabase
+  // Skupini z lastniki in člani (adminClient bypasses RLS)
+  const { data: groups } = await adminClient
     .from('groups')
     .select(`
       id, name, invite_code, created_at,

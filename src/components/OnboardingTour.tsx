@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClient } from '@/utils/supabase/client'
 
-const STORAGE_KEY = 'onboarding_done_v1'
-const VISITS_KEY = 'onboarding_visits_v1'
 const MAX_VISITS = 3
 
 type Step = {
@@ -22,13 +21,13 @@ const STEPS: Step[] = [
   },
   {
     title: '🔮 Posebne napovedi',
-    description: 'Napovej zmagovalca SP, najboljšega strelca, MVP-ja in zmagovalce skupin za bonus točke.',
+    description: 'Napovedi zmagovalca SP, najboljšega strelca, MVP-ja in zmagovalce skupin za bonus točke.',
     selector: '[data-tour="special-tab"]',
     position: 'center',
   },
   {
     title: '👥 Preklop profila',
-    description: 'Tukaj preklopljaš med svojim profilom in profili otrok. Ko izbereš otroka, se napovedi shranijo njemu.',
+    description: 'Tukaj preklapljaš med svojim profilom in profili otrok. Ko izbereš otroka, se napovedi shranijo njemu.',
     selector: '[data-tour="profile-switcher"]',
     position: 'center',
   },
@@ -40,20 +39,34 @@ const STEPS: Step[] = [
   },
 ]
 
-export default function OnboardingTour() {
+export default function OnboardingTour({ userId }: { userId: string }) {
   const [step, setStep] = useState(0)
   const [visible, setVisible] = useState(false)
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const done = localStorage.getItem(STORAGE_KEY)
-    if (done) return
-    const visits = parseInt(localStorage.getItem(VISITS_KEY) ?? '0', 10)
-    if (visits >= MAX_VISITS) return
-    localStorage.setItem(VISITS_KEY, String(visits + 1))
-    setTimeout(() => setVisible(true), 800)
-  }, [])
+
+    const supabase = createClient()
+    supabase
+      .from('users')
+      .select('onboarding_visits')
+      .eq('id', userId)
+      .single()
+      .then(({ data }) => {
+        const visits = data?.onboarding_visits ?? 0
+        if (visits >= MAX_VISITS) return
+
+        // Increment visit count immediately
+        supabase
+          .from('users')
+          .update({ onboarding_visits: visits + 1 })
+          .eq('id', userId)
+          .then()
+
+        setTimeout(() => setVisible(true), 800)
+      })
+  }, [userId])
 
   useEffect(() => {
     if (!visible) return
@@ -68,7 +81,6 @@ export default function OnboardingTour() {
   }, [step, visible])
 
   const finish = () => {
-    localStorage.setItem(STORAGE_KEY, '1')
     setVisible(false)
   }
 
@@ -82,7 +94,6 @@ export default function OnboardingTour() {
   const current = STEPS[step]
   const hasTarget = !!targetRect
 
-  // Izračunaj pozicijo tooltipa glede na target element
   const getTooltipStyle = (): React.CSSProperties => {
     const tooltipW = Math.min(300, window.innerWidth - 32)
     const pad = 12
@@ -104,7 +115,6 @@ export default function OnboardingTour() {
 
     if (current.position === 'bottom') {
       const top = targetRect.bottom + pad
-      // Če ni dovolj prostora spodaj, pokaži sredinsko
       if (top + 220 > window.innerHeight) return centered
       return { position: 'fixed', top, left: centerX, width: tooltipW, zIndex: 10001 }
     }

@@ -31,7 +31,7 @@ export default async function DashboardPage({
     <div style={{ minHeight:'100vh', paddingBottom:80, fontFamily:'var(--font)' }} className="md:pb-0 md:pt-16">
       <Navbar activePath="/dashboard" />
 
-      <OnboardingTour />
+      <OnboardingTour userId={user.id} />
       <div style={{ maxWidth:640, margin:'0 auto' }}>
         {/* Greeting */}
         <div style={{ padding:'16px 20px 14px' }}>

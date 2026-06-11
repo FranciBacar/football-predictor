@@ -19,6 +19,7 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
   const [isJoining, setIsJoining] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
@@ -31,6 +32,12 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
     await navigator.clipboard.writeText(getInviteUrl(code))
     setCopiedId(groupId)
     setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const copyInviteCode = async (code: string, groupId: string) => {
+    await navigator.clipboard.writeText(code)
+    setCopiedCodeId(groupId)
+    setTimeout(() => setCopiedCodeId(null), 2000)
   }
 
   const handleCreateGroup = async () => {
@@ -195,23 +202,41 @@ export default function GroupsClient({ userId, initialGroups }: { userId: string
                     )}
                   </div>
 
-                  {/* Invite link */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-xs text-gray-400 mb-0.5">Povabilo link</p>
-                      <p className="text-xs font-mono text-gray-600 truncate">/join?code={group.invite_code}</p>
+                  {/* Invite section */}
+                  <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-2">
+                    {/* Code row */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-400 mb-0.5">Koda za povabilo</p>
+                        <p className="text-base font-mono font-bold tracking-widest text-gray-800">{group.invite_code}</p>
+                      </div>
+                      <button
+                        onClick={() => copyInviteCode(group.invite_code, group.id)}
+                        className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
+                        style={copiedCodeId === group.id
+                          ? { background: 'var(--goodish-green-light)', borderColor: 'var(--goodish-green)', color: 'var(--goodish-green-dark)' }
+                          : { background: 'white', borderColor: '#e5e7eb', color: '#374151' }
+                        }
+                      >
+                        {copiedCodeId === group.id ? <Check size={13} /> : <Copy size={13} />}
+                        {copiedCodeId === group.id ? 'Kopirano!' : 'Kopiraj kodo'}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => copyInviteLink(group.invite_code, group.id)}
-                      className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
-                      style={copiedId === group.id
-                        ? { background: 'var(--goodish-green-light)', borderColor: 'var(--goodish-green)', color: 'var(--goodish-green-dark)' }
-                        : { background: 'white', borderColor: '#e5e7eb', color: '#374151' }
-                      }
-                    >
-                      {copiedId === group.id ? <Check size={13} /> : <Copy size={13} />}
-                      {copiedId === group.id ? 'Kopirano!' : 'Kopiraj'}
-                    </button>
+                    {/* Link row */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-200">
+                      <p className="text-xs text-gray-400 truncate min-w-0">/join?code={group.invite_code}</p>
+                      <button
+                        onClick={() => copyInviteLink(group.invite_code, group.id)}
+                        className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
+                        style={copiedId === group.id
+                          ? { background: 'var(--goodish-green-light)', borderColor: 'var(--goodish-green)', color: 'var(--goodish-green-dark)' }
+                          : { background: 'white', borderColor: '#e5e7eb', color: '#374151' }
+                        }
+                      >
+                        {copiedId === group.id ? <Check size={13} /> : <Copy size={13} />}
+                        {copiedId === group.id ? 'Kopirano!' : 'Kopiraj link'}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Action buttons */}

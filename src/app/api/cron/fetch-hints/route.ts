@@ -192,9 +192,10 @@ export async function GET(req: NextRequest) {
       eloHome, eloAway
     )
 
-    // Odds (poskusi z normaliziranim imenom)
-    const oddsKey = `${normalizeTeam(home_team)}|${normalizeTeam(away_team)}`
-    const odds = oddsMap[oddsKey]
+    // Odds (poskusi z normaliziranim imenom — tudi obrnjeni vrstni red)
+    const normHome = normalizeTeam(home_team)
+    const normAway = normalizeTeam(away_team)
+    const odds = oddsMap[`${normHome}|${normAway}`] ?? oddsMap[`${normAway}|${normHome}`]
     const oddsProbs = odds ? oddsToProbs(odds.home, odds.draw, odds.away) : null
 
     // Najverjetnejši score po odds: preprosto vzamemo poisson score (odds ne dajejo score)
@@ -226,5 +227,6 @@ export async function GET(req: NextRequest) {
     updated++
   }
 
-  return NextResponse.json({ message: 'Hints updated', updated })
+  const oddsCount = Object.keys(oddsMap).length
+  return NextResponse.json({ message: 'Hints updated', updated, oddsMatchesFromApi: oddsCount })
 }
