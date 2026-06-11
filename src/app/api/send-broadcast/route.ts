@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     const { error: sendError } = await resend.emails.send({
       from: 'Franci Bačar <franci@greatish.app>',
       to: user.email,
-      subject: '⚽ SP 2026 se začenja — dve novosti za tebe',
+      subject: '⏰ Podaljšujemo rok za posebne napovedi — do polnoči',
       html,
     })
     if (sendError) {
