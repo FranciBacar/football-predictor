@@ -181,7 +181,7 @@ export default function SpecialPredictions(p: SpecialPredictionsProps) {
       </div>
 
       {/* sticky save */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-[#ebeeec] bg-white/90 px-5 pt-3.5 backdrop-blur-md" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 14px)' }}>
+      <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-[#ebeeec] bg-white px-5 pt-3.5 backdrop-blur-md" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 14px)' }}>
         <div className="mx-auto flex max-w-[600px] items-center justify-between gap-3.5">
           <div className="text-[12.5px] text-[#6b7280]">
             <b className="font-bold text-[#0f766e]">{p.savedCount}</b> od {p.totalCount} napovedi oddanih

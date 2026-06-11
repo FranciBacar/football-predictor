@@ -165,7 +165,7 @@ export default function SpecialPredictionsContainer({
   }, [localState, userId, supabase])
 
   return (
-    <div style={{ padding: '0 16px' }}>
+    <div style={{ padding: '0 16px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 140px)' }}>
       <SpecialPredictions
         championOptions={championOptions}
         groups={groups}
