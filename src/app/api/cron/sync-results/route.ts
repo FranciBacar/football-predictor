@@ -1,8 +1,8 @@
 /**
  * GET /api/cron/sync-results
  *
- * Brezplačen sync rezultatov SP 2026 iz openfootball GitHub repota.
- * Brez API ključa. Podatki se posodabljajo sproti med turnirjem.
+ * Sync rezultatov SP 2026 iz football-data.org (brezplačen tier).
+ * API ključ: FOOTBALL_DATA_API_KEY (env var)
  *
  * Zahteva: Authorization: Bearer {CRON_SECRET}
  */
@@ -11,8 +11,8 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { SL_TO_API } from '@/lib/teamNameMap'
 
-const OPENFOOTBALL_URL =
-  'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json'
+const FOOTBALL_DATA_URL =
+  'https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED'
 
 function isAuthorized(request: Request): boolean {
   const authHeader = request.headers.get('authorization')
@@ -21,7 +21,7 @@ function isAuthorized(request: Request): boolean {
   return authHeader === `Bearer ${secret}`
 }
 
-// Normalizira ime ekipe za primerjavo (male črke, brez presledkov)
+// Normalizira ime ekipe za primerjavo (male črke, samo črke)
 function normalize(name: string): string {
   return name.toLowerCase().replace(/[^a-z]/g, '')
 }
@@ -32,34 +32,42 @@ for (const [sl, en] of Object.entries(SL_TO_API)) {
   EN_NORM_TO_SL[normalize(en)] = sl
 }
 
-// Dodatni aliasi za variante imen (vključno z openfootball placeholder imeni)
+// Dodatni aliasi za variante imen (football-data.org + openfootball variante)
 const EXTRA_ALIASES: Record<string, string> = {
+  // Češka
   'czechrepublic': 'Češka',
   'czechia': 'Češka',
+  // ZDA
   'unitedstates': 'ZDA',
   'usa': 'ZDA',
+  // Slonokoščena obala
   'ivorycoast': 'Slonokoščena obala',
   'cotedivoire': 'Slonokoščena obala',
+  'cotedivoire': 'Slonokoščena obala',
+  // Bosna
   'bosniaandherzegovina': 'Bosna in Hercegovina',
   'bosnia': 'Bosna in Hercegovina',
+  // DR Kongo
   'drcongodr': 'DR Kongo',
   'democraticrepublicofthecongo': 'DR Kongo',
   'drcongo': 'DR Kongo',
+  'congodr': 'DR Kongo',
+  'congodrc': 'DR Kongo',
+  // Zelenortski otoki
   'capeverde': 'Zelenortski otoki',
+  'caboverde': 'Zelenortski otoki',
+  // Nova Zelandija
   'newzealand': 'Nova Zelandija',
+  // Južna Koreja
   'southkorea': 'Južna Koreja',
+  'korearepublic': 'Južna Koreja',
   'korea': 'Južna Koreja',
-  'korearePublic': 'Južna Koreja',
+  // Južna Afrika
   'southafrica': 'Južna Afrika',
+  // Savdska Arabija
   'saudiarabia': 'Savdska Arabija',
+  // Curaçao
   'curacao': 'Curaçao',
-  // openfootball placeholder names (pred uradnimi kvalifikacijami)
-  'uefapathdwinner': 'Češka',
-  'uefapathawinner': 'Bosna in Hercegovina',
-  'uefapathbwinner': 'Švedska',
-  'uefapathcwinner': 'Turčija',
-  'icpath1winner': 'DR Kongo',
-  'icpath2winner': 'Irak',
 }
 
 function apiNameToSl(apiName: string): string | null {
@@ -72,19 +80,27 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY
+  if (!apiKey) {
+    return NextResponse.json({ error: 'FOOTBALL_DATA_API_KEY ni nastavljen' }, { status: 500 })
+  }
+
   const supabase = createAdminClient()
-  const results = { updated: 0, skipped: 0, errors: [] as string[] }
+  const results = { updated: 0, skipped: 0, noMatch: [] as string[], errors: [] as string[] }
 
   try {
-    // 1. Pridobi podatke iz openfootball
-    const res = await fetch(OPENFOOTBALL_URL, { cache: 'no-store' })
-    if (!res.ok) throw new Error(`openfootball fetch failed: ${res.status}`)
+    // 1. Pridobi zaključene tekme iz football-data.org
+    const res = await fetch(FOOTBALL_DATA_URL, {
+      headers: { 'X-Auth-Token': apiKey },
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      throw new Error(`football-data.org ${res.status}: ${body.slice(0, 200)}`)
+    }
     const data = await res.json()
 
-    // Filtriraj samo zaključene tekme (imajo score1 in score2)
-    const finishedMatches = (data.matches ?? []).filter(
-      (m: any) => m.score1 !== undefined && m.score2 !== undefined
-    )
+    const finishedMatches: any[] = data.matches ?? []
 
     if (finishedMatches.length === 0) {
       return NextResponse.json({ message: 'Ni zaključenih tekem v viru.', ...results })
@@ -101,19 +117,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Vse tekme so že zaključene.', ...results })
     }
 
-    // 3. Za vsako zaključeno openfootball tekmo → poiščemo v naši bazi
+    // 3. Za vsako zaključeno tekmo → poiščemo v naši bazi
     for (const apiMatch of finishedMatches) {
-      const apiHome = apiNameToSl(apiMatch.team1)
-      const apiAway = apiNameToSl(apiMatch.team2)
+      const apiHome = apiNameToSl(apiMatch.homeTeam?.name ?? '')
+      const apiAway = apiNameToSl(apiMatch.awayTeam?.name ?? '')
 
       if (!apiHome || !apiAway) {
         results.skipped++
         continue
       }
 
-      const apiDate = new Date(apiMatch.date)
+      const scoreHome: number | null = apiMatch.score?.fullTime?.home ?? null
+      const scoreAway: number | null = apiMatch.score?.fullTime?.away ?? null
 
-      // Poišči ujemajočo tekmo (isti ekipi + isti dan ±1 dan)
+      if (scoreHome === null || scoreAway === null) {
+        results.skipped++
+        continue
+      }
+
+      // football-data.org vrne utcDate kot ISO string → direktna primerjava
+      const apiDate = new Date(apiMatch.utcDate)
+
+      // Poišči ujemajočo tekmo (isti ekipi + isti dan ±2 dni)
       const ourMatch = ourMatches.find(m => {
         const matchDate = new Date(m.match_time_utc)
         const dayDiff = Math.abs(matchDate.getTime() - apiDate.getTime())
@@ -122,22 +147,18 @@ export async function GET(request: Request) {
       })
 
       if (!ourMatch) {
+        results.noMatch.push(`${apiHome} vs ${apiAway}`)
         results.skipped++
         continue
       }
 
       // 4. Določi advancing_team za izločilne boje (penalti)
       let actualAdvancingTeam: string | null = null
-      if (ourMatch.is_knockout) {
-        const ftHome = apiMatch.score1
-        const ftAway = apiMatch.score2
-        if (ftHome === ftAway) {
-          // Remi po 90 min — preveri penalty rezultat (score1p/score2p)
-          const penHome = apiMatch.score1p
-          const penAway = apiMatch.score2p
-          if (penHome !== undefined && penAway !== undefined) {
-            actualAdvancingTeam = penHome > penAway ? ourMatch.home_team : ourMatch.away_team
-          }
+      if (ourMatch.is_knockout && scoreHome === scoreAway) {
+        const penHome: number | null = apiMatch.score?.penalties?.home ?? null
+        const penAway: number | null = apiMatch.score?.penalties?.away ?? null
+        if (penHome !== null && penAway !== null) {
+          actualAdvancingTeam = penHome > penAway ? ourMatch.home_team : ourMatch.away_team
         }
       }
 
@@ -146,8 +167,8 @@ export async function GET(request: Request) {
         .from('matches')
         .update({
           status: 'Finished',
-          actual_score_home: apiMatch.score1,
-          actual_score_away: apiMatch.score2,
+          actual_score_home: scoreHome,
+          actual_score_away: scoreAway,
           actual_advancing_team: actualAdvancingTeam,
           updated_at: new Date().toISOString(),
         })
@@ -161,7 +182,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      message: `Sync zaključen. Vir: openfootball GitHub`,
+      message: 'Sync zaključen. Vir: football-data.org',
       zaključenihVViru: finishedMatches.length,
       ...results,
     })
