@@ -3,14 +3,17 @@
 /**
  * ScheduleView — "Po dnevih" pogled (kronološki razpored tekem).
  *
- * Prikaže VSE tekme po času, razdeljene po dnevih, z napredkom in filtrom
- * "Nenapovedane", ter dovoli napoved kar v vrstici.
+ * Reši problem: pri 12 skupinah + izločilnih bojih je lahko spregledana
+ * tekma, ki je nisi nikoli odprl. Ta pogled prikaže VSE tekme po času, z dnevi,
+ * napredkom in filtrom "Nenapovedane", ter dovoli napoved kar v vrstici.
  *
  * Vgradnja: kot način (mode) znotraj zavihka Napovedi — segmentni preklopnik
  * "Po skupinah / Po dnevih" (ne 5. tab, da spodnja navigacija ostane čista).
+ *
+ * Lasti draft-stanje napovedi; ob shranjevanju pokliče onSave(id, score).
  */
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { ClosedRow, OpenRow, type Match, type Score } from './ScheduleRow';
 
 const TZ = 'Europe/Ljubljana';
@@ -57,16 +60,6 @@ export default function ScheduleView({ matches, predictions, onSave }: ScheduleV
 
   const draftFor = (m: Match): Score => drafts[m.id] ?? predictions[m.id] ?? { home: 0, away: 0 };
 
-  // Ob mountu scrolla na aktualni dan (med prventsvom)
-  useEffect(() => {
-    const todayKey = dayKeyFmt.format(Date.now());
-    const el = document.getElementById(`sched-day-${todayKey}`);
-    if (el) {
-      // Kratka zakasnitev da se DOM upodabi pred scrollom
-      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
-    }
-  }, []);
-
   return (
     <div>
       {/* napredek */}
@@ -107,7 +100,7 @@ export default function ScheduleView({ matches, predictions, onSave }: ScheduleV
       {days.map((day) => {
         const dayTodo = day.items.filter((m) => m.status === 'open' && !isPredicted(m) && m.id !== openId).length;
         return (
-          <section key={day.key} id={`sched-day-${day.key}`} className="mb-1.5">
+          <section key={day.key} className="mb-1.5">
             <header className="sticky top-0 z-[5] flex items-center justify-between gap-2.5 px-5 py-2.5 backdrop-blur-md" style={{ background: 'rgba(244,246,245,0.92)' }}>
               <div className="flex items-baseline gap-2">
                 <span className="text-[13.5px] font-bold tracking-tight text-[#1a1a1a]">{cap(dowFmt.format(day.ts))}</span>

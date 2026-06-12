@@ -12,23 +12,22 @@
  */
 
 import { useState, type ReactNode } from 'react';
-import { getTeam } from '@/lib/teamData';
 
 /* ── tipi ─────────────────────────────────────────────────── */
 export type Probs = { home: number; draw: number; away: number }; // %, vsota ~100
 
-export type TeamLite = { name: string; flag: string };
+export type TeamLite = { name: string; flag: string }; // flag = emoji ali ISO koda za <Flag>
 
 export type MatchHintData = {
   home: TeamLite;
   away: TeamLite;
-  /** Verjetnosti stavnic + decimalne kvote [1, X, 2] — null če ni live kvot */
-  book: (Probs & { odds?: [number, number, number] }) | null;
+  /** Verjetnosti stavnic + decimalne kvote [1, X, 2] */
+  book: Probs & { odds?: [number, number, number] };
   /** Verjetnosti matematičnega modela (Poisson + ELO) */
   model: Probs & {
-    likely: string;
-    lambdaHome: number;
-    lambdaAway: number;
+    likely: string;        // npr. "1:0"
+    lambdaHome: number;    // pričakovani goli doma
+    lambdaAway: number;    // pričakovani goli gosti
     eloHome: number;
     eloAway: number;
   };
@@ -36,16 +35,16 @@ export type MatchHintData = {
 
 export type MatchHintProps = {
   data: MatchHintData;
+  /** Podrobnosti privzeto odprte (npr. za snapshote). Default: false */
   defaultOpen?: boolean;
   className?: string;
 };
 
-/* ── barve verjetnosti ────────────────────────────────────── */
+/* ── barve verjetnosti (data-driven → inline) ─────────────── */
 const PC = { home: '#0f766e', draw: '#94a3b8', away: '#f97316' } as const;
 
 /* ── konsenz = povprečje stavnic in modela ────────────────── */
 function consensus(d: MatchHintData): Probs {
-  if (!d.book) return { home: d.model.home, draw: d.model.draw, away: d.model.away };
   const avg = (a: number, b: number) => Math.round((a + b) / 2);
   return {
     home: avg(d.book.home, d.model.home),
@@ -95,7 +94,7 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
   const favHome = diff >= 0;
   const fav = favHome ? data.home : data.away;
   const favPct = Math.max(c.home, c.away);
-  const pos = Math.round((c.away / (c.home + c.away)) * 100);
+  const pos = Math.round((c.away / (c.home + c.away)) * 100); // 0 = home(levo) … 100 = away(desno)
 
   let verdict: ReactNode;
   if (Math.abs(diff) <= 6) {
@@ -117,14 +116,14 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
   }
 
   const sources = [
-    ...(data.book ? [{ key: 'book', label: 'Stavnice', dot: '#0f766e', p: data.book }] : []),
-    { key: 'model', label: 'Model', dot: '#f97316', p: data.model },
-  ];
+    { key: 'book', label: 'Stavnice', icon: '📊', p: data.book },
+    { key: 'model', label: 'Model', icon: '🧮', p: data.model },
+  ] as const;
 
   const chips = [
     `λ ${data.model.lambdaHome}–${data.model.lambdaAway}`,
     `ELO ${data.model.eloHome}·${data.model.eloAway}`,
-    ...(data.book?.odds ? [`kvote ${data.book.odds.join(' · ')}`] : []),
+    ...(data.book.odds ? [`kvote ${data.book.odds.join(' · ')}`] : []),
   ];
 
   return (
@@ -134,8 +133,8 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
     >
       {/* headline */}
       <div className="flex items-center justify-between gap-2">
-        <span className="whitespace-nowrap text-[11px] font-bold text-[#374151]">
-          Kaj je izračunal algoritem
+        <span className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-bold text-[#374151]">
+          💡 Kaj je izračunal algoritem
         </span>
         <LikelyPill score={data.model.likely} />
       </div>
@@ -166,10 +165,10 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
 
       {/* verdict */}
       <p className="text-[12.5px] font-medium leading-[1.45] text-[#374151]">
-        {verdict} <span className="text-[#9aa1ab]">Ti odločaš.</span>
+        {verdict} <span className="text-[#9aa1ab]">Ti odločaš. 🤖</span>
       </p>
 
-      {/* Podrobnosti */}
+      {/* razkritje */}
       <div className="mt-px border-t border-[#e9edec] pt-2.5">
         <button
           type="button"
@@ -195,8 +194,7 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
               <div key={r.key} className="flex flex-col gap-[7px]">
                 <div className="flex items-center justify-between gap-2 text-[11.5px]">
                   <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap font-semibold text-[#6b7280]">
-                    <span className="inline-block h-2 w-2 rounded-[2px]" style={{ background: r.dot }} />
-                    {r.label}
+                    {r.icon} {r.label}
                   </span>
                   <span className="flex shrink-0 gap-[9px] font-semibold tabular-nums">
                     <span style={{ color: PC.home }}>{r.p.home}%</span>
@@ -217,52 +215,11 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
             </div>
 
             <p className="text-[10.5px] font-medium leading-[1.4] text-[#9aa1ab]">
-              Stavnice + matematični model (Poisson · ELO). Samo algoritem za zabavo — prihodnosti seveda ne poznamo.
+              Stavnice + matematični model (Poisson · ELO). Samo algoritem za zabavo — prihodnosti seveda ne poznamo. 🤖
             </p>
           </div>
         )}
       </div>
     </div>
   );
-}
-
-/* ── adapter: Supabase match_hints → MatchHintData ─────────── */
-export function hintFromSupabase(raw: any, homeTeam: string, awayTeam: string): MatchHintData | null {
-  if (!raw) return null;
-  const homeTeamData = getTeam(homeTeam);
-  const awayTeamData = getTeam(awayTeam);
-
-  const toP = (v: number | null) => v != null ? Math.round(v * 100) : 33;
-
-  const bookHome = toP(raw.odds_prob_home);
-  const bookDraw = toP(raw.odds_prob_draw);
-  const bookAway = toP(raw.odds_prob_away);
-  const modelHome = toP(raw.poisson_prob_home);
-  const modelDraw = toP(raw.poisson_prob_draw);
-  const modelAway = toP(raw.poisson_prob_away);
-
-  const hasOdds = raw.odds_home != null;
-
-  return {
-    home: { name: homeTeam, flag: homeTeamData.flag },
-    away: { name: awayTeam, flag: awayTeamData.flag },
-    book: hasOdds ? {
-      home: bookHome, draw: bookDraw, away: bookAway,
-      odds: [
-        Math.round(raw.odds_home * 100) / 100,
-        Math.round(raw.odds_draw * 100) / 100,
-        Math.round(raw.odds_away * 100) / 100,
-      ],
-    } : null,
-    model: {
-      home: modelHome,
-      draw: modelDraw,
-      away: modelAway,
-      likely: raw.poisson_top_score ?? '1:0',
-      lambdaHome: raw.poisson_home_goals ?? 1.2,
-      lambdaAway: raw.poisson_away_goals ?? 1.0,
-      eloHome: raw.elo_home ?? 1700,
-      eloAway: raw.elo_away ?? 1700,
-    },
-  };
 }
