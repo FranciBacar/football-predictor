@@ -38,9 +38,11 @@ export type PoissonResult = {
 
 // ELO faktor: prilagodi lambda glede na razliko v ELO
 // +100 ELO ≈ 14% večja verjetnost zmage
+// Omejen na ±2.5× da preprečimo ekstremne lambde (npr. 6.5 golov)
 function eloFactor(eloHome: number, eloAway: number): number {
   const diff = eloHome - eloAway
-  return Math.pow(10, diff / 400)
+  const raw = Math.pow(10, diff / 400)
+  return Math.max(0.4, Math.min(2.5, raw))
 }
 
 export function calculatePoisson(
