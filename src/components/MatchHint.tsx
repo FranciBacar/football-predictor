@@ -1,5 +1,7 @@
 'use client';
 
+import { getTeam } from '@/lib/teamData';
+
 /**
  * MatchHint — "Kaj je izračunal algoritem"
  * Diskreten analitični namig pred zaklepom napovedi.
@@ -222,4 +224,45 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
       </div>
     </div>
   );
+}
+
+/* ── adapter: Supabase match_hints → MatchHintData ─────────── */
+export function hintFromSupabase(raw: any, homeTeam: string, awayTeam: string): MatchHintData | null {
+  if (!raw) return null;
+  const homeTeamData = getTeam(homeTeam);
+  const awayTeamData = getTeam(awayTeam);
+
+  const toP = (v: number | null) => v != null ? Math.round(v * 100) : 33;
+
+  const bookHome = toP(raw.odds_prob_home);
+  const bookDraw = toP(raw.odds_prob_draw);
+  const bookAway = toP(raw.odds_prob_away);
+  const modelHome = toP(raw.poisson_prob_home);
+  const modelDraw = toP(raw.poisson_prob_draw);
+  const modelAway = toP(raw.poisson_prob_away);
+
+  const hasOdds = raw.odds_home != null;
+
+  return {
+    home: { name: homeTeam, flag: homeTeamData.flag },
+    away: { name: awayTeam, flag: awayTeamData.flag },
+    book: hasOdds ? {
+      home: bookHome, draw: bookDraw, away: bookAway,
+      odds: [
+        Math.round(raw.odds_home * 100) / 100,
+        Math.round(raw.odds_draw * 100) / 100,
+        Math.round(raw.odds_away * 100) / 100,
+      ],
+    } : null,
+    model: {
+      home: modelHome,
+      draw: modelDraw,
+      away: modelAway,
+      likely: raw.poisson_top_score ?? '1:0',
+      lambdaHome: raw.poisson_home_goals ?? 1.2,
+      lambdaAway: raw.poisson_away_goals ?? 1.0,
+      eloHome: raw.elo_home ?? 1700,
+      eloAway: raw.elo_away ?? 1700,
+    },
+  };
 }
