@@ -24,7 +24,7 @@ export type MatchHintData = {
   home: TeamLite;
   away: TeamLite;
   /** Verjetnosti stavnic + decimalne kvote [1, X, 2] */
-  book: Probs & { odds?: [number, number, number] };
+  book: (Probs & { odds?: [number, number, number] }) | null;
   /** Verjetnosti matematičnega modela (Poisson + ELO) */
   model: Probs & {
     likely: string;        // npr. "1:0"
