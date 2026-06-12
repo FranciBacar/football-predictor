@@ -93,7 +93,7 @@ export default function Leaderboard({ title = 'Lestvica', subtitle = 'Razvršče
 
       <div className="overflow-hidden rounded-[18px] border border-[#ebeeec] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.03),0_12px_30px_rgba(16,24,40,0.05)]">
         <div className="grid grid-cols-[58px_1fr_78px_86px] border-b border-[#ebeeec] bg-[#fcfdfd] px-5 py-[13px] text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#9aa1ab] max-[520px]:grid-cols-[46px_1fr_56px_66px] max-[520px]:px-3.5">
-          <div className="text-center">#</div><div>Igralec</div><div className="text-center">Točne</div><div className="text-right">Točke</div>
+          <div className="text-center">#</div><div>Igralec</div><div className="text-center">Točne napovedi</div><div className="text-right">Točke</div>
         </div>
         {rows.map((p, i) => <Row key={p.id} p={p} rank={i + 1} />)}
         {rows.length === 0 && (
