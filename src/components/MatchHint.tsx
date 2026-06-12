@@ -47,6 +47,7 @@ const PC = { home: '#0f766e', draw: '#94a3b8', away: '#f97316' } as const;
 
 /* ── konsenz = povprečje stavnic in modela ────────────────── */
 function consensus(d: MatchHintData): Probs {
+  if (!d.book) return { home: d.model.home, draw: d.model.draw, away: d.model.away };
   const avg = (a: number, b: number) => Math.round((a + b) / 2);
   return {
     home: avg(d.book.home, d.model.home),
