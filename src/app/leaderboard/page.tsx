@@ -66,7 +66,7 @@ export default async function LeaderboardPage({
   const { data: kidsRaw } = await supabase
     .from('users')
     .select('id, name, avatar_url, is_kid')
-    .eq('is_kid', true)           // Samo pravi otroški profili (ne odrasli z is_underage)
+    .or('is_kid.eq.true,is_underage.eq.true')  // Otroški profili + pravi mladoletni
 
   const kidsWithPoints = await Promise.all(
     (kidsRaw ?? []).map(async (kid) => {
