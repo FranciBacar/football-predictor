@@ -110,33 +110,42 @@ export default async function LeaderboardPage({
 
   const groupsWithData = await Promise.all(
     groups.map(async (g) => {
-      const [{ data: rpcData }, { data: memberRows }] = await Promise.all([
-        supabase.rpc('get_group_leaderboard', { p_group_id: g.id }),
-        supabase.from('group_members').select('user_id').eq('group_id', g.id),
-      ])
+      // Direkten query brez RPC (izogni se auth.uid() problemu v Server Componentu)
+      const { data: memberRows } = await supabase
+        .from('group_members').select('user_id').eq('group_id', g.id)
       const userIds = (memberRows ?? []).map((m: any) => m.user_id)
+
       const { data: userRows } = userIds.length > 0
         ? await supabase.from('users').select('id, name, avatar_url').in('id', userIds)
         : { data: [] as any[] }
 
-      const gPointsMap = new Map((rpcData ?? []).map((e: any) => [e.user_id, e]))
-      const merged: any[] = (userRows ?? []).map((u: any) => {
-        const entry = gPointsMap.get(u.id)
-        return entry ?? {
-          user_id: u.id,
-          name: u.name,
-          avatar_url: u.avatar_url ?? null,
-          total_points: 0,
-          exact_predictions: 0,
-        }
-      })
-      merged.sort(
+      const members = await Promise.all(
+        (userRows ?? []).map(async (u: any) => {
+          const [{ data: preds }, { data: special }] = await Promise.all([
+            supabase.from('predictions').select('earned_points, pred_score_home, pred_score_away, match_id').eq('user_id', u.id),
+            supabase.from('special_predictions').select('earned_points').eq('user_id', u.id),
+          ])
+          const total = [
+            ...(preds ?? []).map((p: any) => p.earned_points ?? 0),
+            ...(special ?? []).map((s: any) => s.earned_points ?? 0),
+          ].reduce((a: number, b: number) => a + b, 0)
+          const exact = (preds ?? []).filter((p: any) => p.earned_points === 3 || p.earned_points === 6).length
+          return {
+            user_id: u.id,
+            name: u.name ?? '',
+            avatar_url: u.avatar_url ?? null,
+            total_points: total,
+            exact_predictions: exact,
+          }
+        })
+      )
+      members.sort(
         (a, b) =>
           b.total_points - a.total_points ||
           b.exact_predictions - a.exact_predictions ||
           a.name.localeCompare(b.name)
       )
-      return { id: g.id, name: g.name, data: merged }
+      return { id: g.id, name: g.name, data: members }
     })
   )
 
