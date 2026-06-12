@@ -4,6 +4,24 @@ import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { RefreshCw, Globe, AlertCircle, ChevronDown, ChevronUp, Users, Layers, Trophy, ShieldCheck, ShieldOff } from 'lucide-react'
 
+// ── Posebne napovedi tipi ──────────────────────────────────────────
+type SpecialPredAnswer = { value: string; count: number; correct_answer: string | null }
+type SpecialPredSummary = { type: string; answers: SpecialPredAnswer[]; currentCorrect: string | null }
+
+const GROUP_LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L']
+const PRED_TYPE_META: Record<string, { label: string; icon: string; points: number }> = {
+  tournament_winner: { label: 'Zmagovalec turnirja', icon: '🏆', points: 10 },
+  top_scorer: { label: 'Najboljši strelec', icon: '⚽', points: 10 },
+  best_player: { label: 'Najboljši igralec (MVP)', icon: '⭐', points: 10 },
+  ...Object.fromEntries(GROUP_LETTERS.map(l => [
+    `group_winner_${l}`, { label: `Skupina ${l}`, icon: '🏅', points: 3 }
+  ])),
+}
+const PRED_TYPE_ORDER = [
+  'tournament_winner', 'top_scorer', 'best_player',
+  ...GROUP_LETTERS.map(l => `group_winner_${l}`),
+]
+
 type Match = {
   id: string
   home_team: string
@@ -51,14 +69,73 @@ const TAB_STYLE_INACTIVE = {
 }
 
 export default function AdminClient({
-  matches, users, groups,
+  matches, users, groups, specialPredsSummary,
 }: {
   matches: Match[]
   users: AdminUser[]
   groups: Group[]
+  specialPredsSummary: SpecialPredSummary[]
 }) {
   const supabase = createClient()
-  const [tab, setTab] = useState<'tekme' | 'uporabniki' | 'skupine'>('tekme')
+  const [tab, setTab] = useState<'tekme' | 'uporabniki' | 'skupine' | 'posebne'>('tekme')
+
+  // ── Posebne napovedi state ─────────────────────────────────────
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string[]>>(() => {
+    const init: Record<string, string[]> = {}
+    for (const s of specialPredsSummary) {
+      if (s.currentCorrect) {
+        init[s.type] = s.answers
+          .filter(a => a.value.toLowerCase().trim() === s.currentCorrect!.toLowerCase().trim())
+          .map(a => a.value)
+      } else {
+        init[s.type] = []
+      }
+    }
+    return init
+  })
+  const [canonicals, setCanonicals] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {}
+    for (const s of specialPredsSummary) {
+      init[s.type] = s.currentCorrect ?? ''
+    }
+    return init
+  })
+  const [scoring, setScoring] = useState<string | null>(null)
+  const [scoreResults, setScoreResults] = useState<Record<string, { ok: boolean; message: string }>>({})
+
+  const toggleAnswer = (type: string, value: string) => {
+    setSelectedAnswers(prev => {
+      const current = prev[type] ?? []
+      const exists = current.includes(value)
+      return { ...prev, [type]: exists ? current.filter(v => v !== value) : [...current, value] }
+    })
+  }
+
+  const scoreType = async (type: string) => {
+    const selected = selectedAnswers[type] ?? []
+    const canonical = canonicals[type]?.trim()
+    if (!canonical) {
+      setScoreResults(prev => ({ ...prev, [type]: { ok: false, message: '⚠️ Vnesi kanonično ime' } }))
+      return
+    }
+    setScoring(type)
+    try {
+      const res = await fetch('/api/admin/score-special', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prediction_type: type, correct_values: selected, canonical }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setScoreResults(prev => ({ ...prev, [type]: { ok: true, message: `✅ ${data.awarded}/${data.total} napovedi · ${data.points} točk vsaka` } }))
+      } else {
+        setScoreResults(prev => ({ ...prev, [type]: { ok: false, message: `❌ ${data.error}` } }))
+      }
+    } catch (e) {
+      setScoreResults(prev => ({ ...prev, [type]: { ok: false, message: `❌ Napaka: ${e}` } }))
+    }
+    setScoring(null)
+  }
 
   // --- Match state ---
   const [syncLog, setSyncLog] = useState<string | null>(null)
@@ -161,7 +238,7 @@ export default function AdminClient({
       </div>
 
       {/* Tabs */}
-      <div style={{ background: '#f3f4f6', borderRadius: 12, padding: 4, display: 'flex', gap: 2, marginBottom: 16 }}>
+      <div style={{ background: '#f3f4f6', borderRadius: 12, padding: 4, display: 'flex', gap: 2, marginBottom: 16, flexWrap: 'wrap' }}>
         <button style={tab === 'tekme' ? TAB_STYLE_ACTIVE : TAB_STYLE_INACTIVE} onClick={() => setTab('tekme')}>
           ⚽ Tekme
         </button>
@@ -170,6 +247,9 @@ export default function AdminClient({
         </button>
         <button style={tab === 'skupine' ? TAB_STYLE_ACTIVE : TAB_STYLE_INACTIVE} onClick={() => setTab('skupine')}>
           🏅 Skupine
+        </button>
+        <button style={tab === 'posebne' ? TAB_STYLE_ACTIVE : TAB_STYLE_INACTIVE} onClick={() => setTab('posebne')}>
+          🎯 Posebne
         </button>
       </div>
 
@@ -356,6 +436,177 @@ export default function AdminClient({
             {filteredUsers.length === 0 && (
               <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: 14, padding: 24 }}>Ni rezultatov</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: Posebne napovedi ── */}
+      {tab === 'posebne' && (
+        <div className="space-y-3">
+          <div style={{ background: '#fff', borderRadius: 16, padding: '14px 16px', border: '1px solid #f0f0f0' }}>
+            <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+              Označi pravilne odgovore → sistem dodeli točke vsem ujemajočim (brez razlike velikih/malih črk).
+              Lahko označiš več variant (npr. "Harry Kane" in "Kane").
+            </p>
+          </div>
+
+          {/* Glavni 3 tipi */}
+          {(['tournament_winner', 'top_scorer', 'best_player'] as const).map(type => {
+            const meta = PRED_TYPE_META[type]
+            const summary = specialPredsSummary.find(s => s.type === type)
+            const selected = selectedAnswers[type] ?? []
+            const canonical = canonicals[type] ?? ''
+            const result = scoreResults[type]
+            return (
+              <div key={type} style={{ background: '#fff', borderRadius: 16, padding: 16, border: '1px solid #f0f0f0' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 20 }}>{meta.icon}</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a' }}>{meta.label}</div>
+                      <div style={{ fontSize: 11, color: '#9ca3af' }}>{meta.points} točk za pravilen odgovor</div>
+                    </div>
+                  </div>
+                  {summary?.currentCorrect && (
+                    <span style={{ fontSize: 11, background: 'rgba(21,128,61,0.1)', color: '#15803d', borderRadius: 20, padding: '3px 10px', fontWeight: 700 }}>
+                      ✓ {summary.currentCorrect}
+                    </span>
+                  )}
+                </div>
+
+                {/* Odgovori */}
+                {!summary || summary.answers.length === 0 ? (
+                  <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 12, fontStyle: 'italic' }}>Ni oddanih napovedi</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                    {summary.answers.map(a => {
+                      const isSelected = selected.includes(a.value)
+                      return (
+                        <label key={a.value} style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                          borderRadius: 10, cursor: 'pointer', border: '1px solid',
+                          borderColor: isSelected ? '#0f766e' : '#f0f0f0',
+                          background: isSelected ? 'rgba(15,118,110,0.05)' : '#f9fafb',
+                        }}>
+                          <input type="checkbox" checked={isSelected}
+                            onChange={() => toggleAnswer(type, a.value)}
+                            style={{ width: 16, height: 16, accentColor: '#0f766e' }} />
+                          <span style={{ flex: 1, fontSize: 13, fontWeight: isSelected ? 700 : 500, color: '#1a1a1a' }}>
+                            {a.value || <em style={{ color: '#9ca3af' }}>(prazno)</em>}
+                          </span>
+                          <span style={{ fontSize: 11, background: '#f0f0f0', borderRadius: 20, padding: '2px 8px', color: '#6b7280', fontWeight: 600 }}>
+                            {a.count}×
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Kanonično ime + shrani */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="text" placeholder="Kanonično ime (npr. Harry Kane)"
+                    value={canonical}
+                    onChange={e => setCanonicals(prev => ({ ...prev, [type]: e.target.value }))}
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+                  />
+                  <button
+                    onClick={() => scoreType(type)}
+                    disabled={scoring === type}
+                    style={{
+                      padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: scoring === type ? '#e5e7eb' : 'linear-gradient(115deg, #0f766e, #2dd4bf)',
+                      color: scoring === type ? '#9ca3af' : '#fff', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap',
+                    }}>
+                    {scoring === type ? '…' : 'Shrani'}
+                  </button>
+                </div>
+                {result && (
+                  <div style={{ marginTop: 8, fontSize: 12, color: result.ok ? '#15803d' : '#dc2626', fontWeight: 600 }}>
+                    {result.message}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Skupina zmagovalci — 2-stolpčna mreža */}
+          <div style={{ background: '#fff', borderRadius: 16, padding: 16, border: '1px solid #f0f0f0' }}>
+            <h3 style={{ fontWeight: 700, fontSize: 14, margin: '0 0 12px', color: '#1a1a1a' }}>🏅 Zmagovalci skupin (3 točke vsaka)</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {GROUP_LETTERS.map(letter => {
+                const type = `group_winner_${letter}`
+                const meta = PRED_TYPE_META[type]
+                const summary = specialPredsSummary.find(s => s.type === type)
+                const selected = selectedAnswers[type] ?? []
+                const canonical = canonicals[type] ?? ''
+                const result = scoreResults[type]
+                return (
+                  <div key={type} style={{ borderRadius: 12, padding: 12, border: '1px solid #f0f0f0', background: '#f9fafb' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: '#1a1a1a' }}>Skupina {letter}</span>
+                      {summary?.currentCorrect && (
+                        <span style={{ fontSize: 10, background: 'rgba(21,128,61,0.1)', color: '#15803d', borderRadius: 20, padding: '2px 7px', fontWeight: 700 }}>
+                          ✓ {summary.currentCorrect}
+                        </span>
+                      )}
+                    </div>
+
+                    {!summary || summary.answers.length === 0 ? (
+                      <p style={{ fontSize: 12, color: '#9ca3af', margin: '0 0 8px', fontStyle: 'italic' }}>Ni napovedi</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                        {summary.answers.map(a => {
+                          const isSelected = selected.includes(a.value)
+                          return (
+                            <label key={a.value} style={{
+                              display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px',
+                              borderRadius: 7, cursor: 'pointer', border: '1px solid',
+                              borderColor: isSelected ? '#0f766e' : 'transparent',
+                              background: isSelected ? 'rgba(15,118,110,0.06)' : 'transparent',
+                            }}>
+                              <input type="checkbox" checked={isSelected}
+                                onChange={() => toggleAnswer(type, a.value)}
+                                style={{ width: 13, height: 13, accentColor: '#0f766e' }} />
+                              <span style={{ flex: 1, fontSize: 12, fontWeight: isSelected ? 700 : 500, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {a.value || <em style={{ color: '#9ca3af' }}>(prazno)</em>}
+                              </span>
+                              <span style={{ fontSize: 10, color: '#9ca3af', flexShrink: 0 }}>{a.count}×</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: 5 }}>
+                      <input
+                        type="text" placeholder="Zmagovalec…"
+                        value={canonical}
+                        onChange={e => setCanonicals(prev => ({ ...prev, [type]: e.target.value }))}
+                        style={{ flex: 1, padding: '6px 8px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 12, outline: 'none', minWidth: 0 }}
+                      />
+                      <button
+                        onClick={() => scoreType(type)}
+                        disabled={scoring === type}
+                        style={{
+                          padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                          background: scoring === type ? '#e5e7eb' : '#0f766e',
+                          color: scoring === type ? '#9ca3af' : '#fff', fontWeight: 700, fontSize: 12, flexShrink: 0,
+                        }}>
+                        {scoring === type ? '…' : 'OK'}
+                      </button>
+                    </div>
+                    {result && (
+                      <div style={{ marginTop: 5, fontSize: 11, color: result.ok ? '#15803d' : '#dc2626', fontWeight: 600 }}>
+                        {result.message}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       )}
