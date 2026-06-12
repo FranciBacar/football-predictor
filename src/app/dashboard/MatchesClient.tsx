@@ -56,13 +56,20 @@ const STAGE_LABELS: Record<string, string> = {
 // ── Helpers ────────────────────────────────────────────────────
 function fmtDate(utc: string): string {
   const d = new Date(utc)
-  const days = ['ned.','pon.','tor.','sre.','čet.','pet.','sob.']
-  const day = days[d.getDay()]
-  const dd = String(d.getDate()).padStart(2,'0')
-  const mm = String(d.getMonth()+1).padStart(2,'0')
-  const hh = String(d.getHours()).padStart(2,'0')
-  const min = String(d.getMinutes()).padStart(2,'0')
-  return `${day}, ${dd}. ${mm}. ob ${hh}:${min}`
+  const tz = 'Europe/Ljubljana'
+  const p = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    weekday: 'short', day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d)
+  const get = (t: string) => p.find(x => x.type === t)?.value ?? ''
+  const dayMap: Record<string, string> = {
+    Mon: 'pon.', Tue: 'tor.', Wed: 'sre.', Thu: 'čet.',
+    Fri: 'pet.', Sat: 'sob.', Sun: 'ned.',
+  }
+  let hh = get('hour')
+  if (hh === '24') hh = '00'
+  return `${dayMap[get('weekday')] ?? get('weekday')}, ${get('day')}. ${get('month')}. ob ${hh.padStart(2,'0')}:${get('minute')}`
 }
 
 // ── Adapter: Supabase Match → ScheduleRow Match ────────────────

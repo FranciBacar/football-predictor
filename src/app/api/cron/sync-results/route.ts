@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { SL_TO_API } from '@/lib/teamNameMap'
 
 const OPENFOOTBALL_URL =
@@ -32,7 +32,7 @@ for (const [sl, en] of Object.entries(SL_TO_API)) {
   EN_NORM_TO_SL[normalize(en)] = sl
 }
 
-// Dodatni aliasi za variante imen
+// Dodatni aliasi za variante imen (vključno z openfootball placeholder imeni)
 const EXTRA_ALIASES: Record<string, string> = {
   'czechrepublic': 'Češka',
   'czechia': 'Češka',
@@ -44,12 +44,22 @@ const EXTRA_ALIASES: Record<string, string> = {
   'bosnia': 'Bosna in Hercegovina',
   'drcongodr': 'DR Kongo',
   'democraticrepublicofthecongo': 'DR Kongo',
+  'drcongo': 'DR Kongo',
   'capeverde': 'Zelenortski otoki',
   'newzealand': 'Nova Zelandija',
   'southkorea': 'Južna Koreja',
   'korea': 'Južna Koreja',
+  'korearePublic': 'Južna Koreja',
   'southafrica': 'Južna Afrika',
   'saudiarabia': 'Savdska Arabija',
+  'curacao': 'Curaçao',
+  // openfootball placeholder names (pred uradnimi kvalifikacijami)
+  'uefapathdwinner': 'Češka',
+  'uefapathawinner': 'Bosna in Hercegovina',
+  'uefapathbwinner': 'Švedska',
+  'uefapathcwinner': 'Turčija',
+  'icpath1winner': 'DR Kongo',
+  'icpath2winner': 'Irak',
 }
 
 function apiNameToSl(apiName: string): string | null {
@@ -62,7 +72,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const results = { updated: 0, skipped: 0, errors: [] as string[] }
 
   try {
