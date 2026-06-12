@@ -27,6 +27,7 @@ export type SpecialPredictionsProps = {
   totalCount: number;       // skupaj (npr. 15)
   lockLabel?: string;       // npr. "11. junija ob 20:00"
   maxBonus?: number;        // npr. 66
+  locked?: boolean;
   onChange: (next: SpecialState) => void;
   onSave: () => void;
 };
