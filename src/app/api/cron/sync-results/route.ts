@@ -43,7 +43,6 @@ const EXTRA_ALIASES: Record<string, string> = {
   // Slonokoščena obala
   'ivorycoast': 'Slonokoščena obala',
   'cotedivoire': 'Slonokoščena obala',
-  'cotedivoire': 'Slonokoščena obala',
   // Bosna
   'bosniaandherzegovina': 'Bosna in Hercegovina',
   'bosnia': 'Bosna in Hercegovina',
