@@ -57,7 +57,8 @@ function PredCard({ title, q, children }: { title: string; q: string; children: 
 
 export default function SpecialPredictions(p: SpecialPredictionsProps) {
   const [v, setV] = useState<SpecialState>(p.value);
-  const set = (patch: Partial<SpecialState>) => { const n = { ...v, ...patch }; setV(n); p.onChange(n); };
+  const disabled = p.locked ?? false;
+  const set = (patch: Partial<SpecialState>) => { if (disabled) return; const n = { ...v, ...patch }; setV(n); p.onChange(n); };
   const setGroup = (gid: string, team: string) => set({ groupWinners: { ...v.groupWinners, [gid]: team } });
 
   return (
@@ -66,7 +67,9 @@ export default function SpecialPredictions(p: SpecialPredictionsProps) {
       <div className="mb-2 flex items-center justify-between gap-4 rounded-2xl border border-[#ebeeec] border-l-[3px] border-l-[#0f766e] bg-white px-[18px] py-4 shadow-[0_1px_2px_rgba(16,24,40,0.03),0_10px_26px_rgba(16,24,40,0.05)]">
         <div>
           <div className="text-[15px] font-bold tracking-tight">Posebne napovedi</div>
-          <div className="mt-1 text-[12.5px] leading-snug text-[#6b7280]">Zaklep {p.lockLabel ?? '11. junija ob 20:00'} — do takrat lahko spreminjaš.</div>
+          <div className="mt-1 text-[12.5px] leading-snug text-[#6b7280]">
+            {disabled ? 'Napovedi so zaklenjene — SP se je začel.' : `Zaklep ${p.lockLabel ?? '11. junija ob 20:00'} — do takrat lahko spreminjaš.`}
+          </div>
         </div>
         <div className="flex-none text-right">
           <div className="text-[26px] font-extrabold leading-none tracking-[-0.03em] text-[#0f766e]">{p.maxBonus ?? 66}</div>
@@ -79,20 +82,20 @@ export default function SpecialPredictions(p: SpecialPredictionsProps) {
 
       <PredCard title="Zmagovalec prvenstva" q="Katera ekipa bo zmagala SP 2026?">
         <div className="relative">
-          <select value={v.champion ?? ''} onChange={(e) => set({ champion: e.target.value })} className={`${fieldCls} h-[46px] cursor-pointer appearance-none pr-10`}>
+          <select value={v.champion ?? ''} onChange={(e) => set({ champion: e.target.value })} disabled={disabled} className={`${fieldCls} h-[46px] cursor-pointer appearance-none pr-10 disabled:cursor-default disabled:opacity-75`}>
             <option value="" disabled>Izberi ekipo…</option>
             {p.championOptions.map((t) => <option key={t.code} value={t.code}>{t.flag ? `${t.flag} ${t.name}` : t.name}</option>)}
           </select>
-          <Chevron />
+          {!disabled && <Chevron />}
         </div>
       </PredCard>
 
       <PredCard title="Najboljši strelec" q="Kdo bo dosegel največ zadetkov na SP?">
-        <input value={v.topScorer ?? ''} onChange={(e) => set({ topScorer: e.target.value })} placeholder="Ime igralca…" className={`${fieldCls} h-[46px]`} />
+        <input value={v.topScorer ?? ''} onChange={(e) => set({ topScorer: e.target.value })} disabled={disabled} placeholder="Ime igralca…" className={`${fieldCls} h-[46px] disabled:cursor-default disabled:opacity-75`} />
       </PredCard>
 
       <PredCard title="Najboljši igralec — Zlata žoga" q="Kdo bo razglašen za najboljšega igralca?">
-        <input value={v.bestPlayer ?? ''} onChange={(e) => set({ bestPlayer: e.target.value })} placeholder="Ime igralca…" className={`${fieldCls} h-[46px]`} />
+        <input value={v.bestPlayer ?? ''} onChange={(e) => set({ bestPlayer: e.target.value })} disabled={disabled} placeholder="Ime igralca…" className={`${fieldCls} h-[46px] disabled:cursor-default disabled:opacity-75`} />
       </PredCard>
 
       {/* zmagovalci skupin */}
@@ -105,23 +108,24 @@ export default function SpecialPredictions(p: SpecialPredictionsProps) {
               <div className="mt-[3px] truncate text-[11px] text-[#9aa1ab]">{g.teams.map((t) => t.name).join(' · ')}</div>
             </div>
             <div className="relative">
-              <select value={v.groupWinners[g.id] ?? ''} onChange={(e) => setGroup(g.id, e.target.value)} className={`${fieldCls} h-10 cursor-pointer appearance-none pr-9 text-[13px]`}>
+              <select value={v.groupWinners[g.id] ?? ''} onChange={(e) => setGroup(g.id, e.target.value)} disabled={disabled} className={`${fieldCls} h-10 cursor-pointer appearance-none pr-9 text-[13px] disabled:cursor-default disabled:opacity-75`}>
                 <option value="" disabled>Izberi…</option>
                 {g.teams.map((t) => <option key={t.code} value={t.code}>{t.name}</option>)}
               </select>
-              <Chevron />
+              {!disabled && <Chevron />}
             </div>
           </div>
         ))}
       </div>
 
       {/* sticky save */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-[#ebeeec] bg-white/90 px-5 py-3.5 backdrop-blur-md">
+      <div className="fixed inset-x-0 bottom-0 border-t border-[#ebeeec] bg-white/90 px-5 py-3.5 backdrop-blur-md" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 14px)' }}>
         <div className="mx-auto flex max-w-[600px] items-center justify-between gap-3.5">
           <div className="text-[12.5px] text-[#6b7280]"><b className="font-bold text-[#0f766e]">{p.savedCount}</b> od {p.totalCount} napovedi oddanih</div>
-          <button type="button" onClick={p.onSave} className="h-[46px] rounded-[13px] bg-[#0f766e] px-[26px] text-[14.5px] font-semibold text-white transition hover:bg-[#0c5f58] active:translate-y-px">
-            Shrani posebne napovedi
-          </button>
+          {disabled
+            ? <div className="flex h-[46px] items-center rounded-[13px] bg-[#f1f3f2] px-[26px] text-[14px] font-semibold text-[#9aa1ab]">Napovedi zaklenjene</div>
+            : <button type="button" onClick={p.onSave} className="h-[46px] rounded-[13px] bg-[#0f766e] px-[26px] text-[14.5px] font-semibold text-white transition hover:bg-[#0c5f58] active:translate-y-px">Shrani posebne napovedi</button>
+          }
         </div>
       </div>
     </div>
