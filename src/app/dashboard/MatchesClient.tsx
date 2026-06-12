@@ -305,6 +305,14 @@ export default function MatchesClient({
 
   // Shranjevanje v "Po dnevih" pogledu
   const handleScheduleSave = useCallback(async (matchId: string, score: Score) => {
+    const match = matches.find(m => m.id === matchId)
+    if (match) {
+      const lockTime = new Date(match.match_time_utc).getTime() - 15 * 60 * 1000
+      if (match.status === 'Finished' || match.status === 'Locked' || match.status === 'In Progress' || Date.now() >= lockTime) {
+        showToast({ icon: '🔒', text: 'Tekma je zaklenjena' })
+        return
+      }
+    }
     const { error } = await supabase.from('predictions').upsert({
       user_id: userId,
       match_id: matchId,

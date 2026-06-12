@@ -121,7 +121,11 @@ export default function ScheduleView({ matches, predictions, onSave }: ScheduleV
                     onCollapse={() => setOpenId(null)} />
                 ) : (
                   <ClosedRow key={m.id} match={m} saved={predictions[m.id] ?? null}
-                    onOpen={() => { setDrafts((d) => ({ ...d, [m.id]: predictions[m.id] ?? { home: 0, away: 0 } })); setOpenId(m.id); }} />
+                    onOpen={() => {
+                      if (m.status !== 'open') return;
+                      setDrafts((d) => ({ ...d, [m.id]: predictions[m.id] ?? { home: 0, away: 0 } }));
+                      setOpenId(m.id);
+                    }} />
                 )
               ))}
             </div>
