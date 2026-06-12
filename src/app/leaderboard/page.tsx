@@ -4,6 +4,8 @@ import LeaderboardClient from './LeaderboardClient'
 import { redirect } from 'next/navigation'
 import type { Player } from '@/components/Leaderboard'
 
+export const dynamic = 'force-dynamic'
+
 /** Pretvori Supabase vrstico v Player tip */
 function toPlayer(e: any, currentUserId: string): Player {
   const nameParts = (e.name ?? '?').split(' ')

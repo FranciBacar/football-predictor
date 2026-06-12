@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { getTeam } from '@/lib/teamData'
 import { hintFromSupabase } from '@/components/MatchHint'
@@ -163,6 +164,13 @@ export default function MatchesClient({
   userId: string
 }) {
   const supabase = createClient()
+  const router = useRouter()
+
+  // Osvežuj podatke vsako minuto — da se match status posodobi (locked/finished)
+  useEffect(() => {
+    const id = setInterval(() => router.refresh(), 60_000)
+    return () => clearInterval(id)
+  }, [router])
 
   // Saved predictions keyed by match_id
   const [saved, setSaved] = useState<Record<string, Prediction>>(() => {
@@ -257,6 +265,15 @@ export default function MatchesClient({
   const handleSave = async (matchId: string) => {
     const pred = local[matchId]
     if (!pred || saving) return
+    // Zavrni shranjevanje za zaklenjene/zaključene tekme
+    const match = matches.find(m => m.id === matchId)
+    if (match) {
+      const lockTime = new Date(match.match_time_utc).getTime() - 15 * 60 * 1000
+      if (match.status === 'Finished' || match.status === 'Locked' || Date.now() >= lockTime) {
+        showToast({ icon: '🔒', text: 'Tekma je zakljenjena' })
+        return
+      }
+    }
     setSaving(matchId)
 
     const { error } = await supabase.from('predictions').upsert({

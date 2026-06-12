@@ -110,6 +110,85 @@ export function OpenRow({
   onSave: () => void;
   onCollapse: () => void;
 }) {
+  const finished = match.status === 'finished';
+  const locked   = match.status === 'locked';
+
+  const CollapseBtn = () => (
+    <button type="button" onClick={onCollapse} aria-label="Strni"
+      className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e6e9e8] bg-white text-[#9aa1ab]">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    </button>
+  );
+
+  const RowHeader = () => (
+    <div className="mb-3 flex items-center justify-between">
+      <div className="flex items-baseline gap-2">
+        <span className="text-[14.5px] font-bold tabular-nums tracking-tight text-[#1a1a1a]">{fmtTime(match.kickoffUtc)}</span>
+        <span className="text-[11px] font-semibold text-[#9aa1ab]">{match.stage}</span>
+      </div>
+      <CollapseBtn />
+    </div>
+  );
+
+  /* ── FINISHED: pravi rezultat + napoved + točke ─────────── */
+  if (finished) {
+    const pts = match.earned ?? 0;
+    const isExact = pts >= 3;
+    return (
+      <div className="rounded-2xl border border-[#e6e9e8] bg-white p-[14px] shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
+        <RowHeader />
+        {/* Pravi rezultat */}
+        <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-[26px] leading-none">{match.home.flag}</span>
+            <span className="max-w-[88px] text-center text-[12.5px] font-semibold leading-tight tracking-tight">{match.home.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[32px] font-black tabular-nums leading-none tracking-[-0.03em] text-[#15201d]">{match.actual?.home ?? '–'}</span>
+            <span className="text-[22px] font-bold text-[#cfd5d3]">:</span>
+            <span className="text-[32px] font-black tabular-nums leading-none tracking-[-0.03em] text-[#15201d]">{match.actual?.away ?? '–'}</span>
+          </div>
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-[26px] leading-none">{match.away.flag}</span>
+            <span className="max-w-[88px] text-center text-[12.5px] font-semibold leading-tight tracking-tight">{match.away.name}</span>
+          </div>
+        </div>
+        {/* Tvoja napoved + točke */}
+        <div className="flex items-center justify-between rounded-[13px] border border-[#ebeeec] bg-[#fafbfb] px-3.5 py-3">
+          <div className="text-[12px] text-[#6b7280]">
+            Tvoja napoved
+            <b className="ml-2 text-[14.5px] font-bold tabular-nums text-[#15201d]">
+              {saved?.home ?? '–'} : {saved?.away ?? '–'}
+            </b>
+          </div>
+          <div className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-bold ${pts === 0 ? 'bg-[#eef1f0] text-[#9aa1ab]' : isExact ? 'bg-[#e9f7f5] text-[#0f766e]' : 'bg-[#fef9ee] text-[#b45309]'}`}>
+            {pts === 0 ? '0 točk' : `+${pts} ${pts === 1 ? 'točka' : pts <= 4 ? 'točke' : 'točk'}`}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── LOCKED: prikaži shranjeno napoved ──────────────────── */
+  if (locked) {
+    return (
+      <div className="rounded-2xl border border-[#e6e9e8] bg-white p-[14px]">
+        <RowHeader />
+        <div className="flex flex-col gap-2.5">
+          {[{ t: match.home, s: saved?.home }, { t: match.away, s: saved?.away }].map(({ t, s }) => (
+            <div key={t.code} className="grid grid-cols-[26px_1fr_auto] items-center gap-[11px]">
+              <span className="text-center text-[22px] leading-none">{t.flag}</span>
+              <span className="truncate text-[15px] font-semibold tracking-tight">{t.name}</span>
+              <span className="min-w-[24px] text-right text-[16px] font-bold tabular-nums text-[#b3bac3]">{s ?? '–'}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3.5 flex h-[42px] w-full items-center justify-center rounded-[13px] bg-[#f3f4f6] text-[13.5px] font-semibold text-[#9aa1ab]">🔒 Napovedi zaklenjene</div>
+      </div>
+    );
+  }
+
+  /* ── OPEN: vnos ─────────────────────────────────────────── */
   const isDraw = draft.home === draft.away;
   const needsAdvancing = match.isKnockout && isDraw;
   const dirty = !saved || saved.home !== draft.home || saved.away !== draft.away || saved.advancing !== draft.advancing;
@@ -125,17 +204,7 @@ export function OpenRow({
 
   return (
     <div className="rounded-2xl border-[1.5px] border-[#0f766e] bg-white p-[14px] shadow-[0_8px_26px_rgba(15,118,110,0.12)]">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[14.5px] font-bold tabular-nums tracking-tight text-[#1a1a1a]">{fmtTime(match.kickoffUtc)}</span>
-          <span className="text-[11px] font-semibold text-[#9aa1ab]">{match.stage}</span>
-        </div>
-        <button type="button" onClick={onCollapse} aria-label="Strni"
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#e6e9e8] bg-white text-[#9aa1ab]">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 15l6-6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
-      </div>
-
+      <RowHeader />
       <div className="flex flex-col gap-2.5">
         <TeamLine t={match.home} val={draft.home} onV={(v) => onChange({ ...draft, home: v })} />
         <TeamLine t={match.away} val={draft.away} onV={(v) => onChange({ ...draft, away: v })} />
