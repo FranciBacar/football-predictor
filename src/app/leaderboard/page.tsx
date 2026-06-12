@@ -42,7 +42,6 @@ export default async function LeaderboardPage({
     .from('users')
     .select('id, name, avatar_url, is_kid, is_underage')
     .eq('is_global_opt_in', true)
-    .neq('is_kid', true)          // Kids so samo v Otroci tabu, ne v Globalni
     .order('name', { ascending: true })
 
   const pointsMap = new Map((globalRpc ?? []).map((e: any) => [e.user_id, e]))
