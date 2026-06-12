@@ -119,14 +119,14 @@ export default function MatchHint({ data, defaultOpen = false, className = '' }:
   }
 
   const sources = [
-    { key: 'book', label: 'Stavnice', icon: '📊', p: data.book },
+    ...(data.book ? [{ key: 'book', label: 'Stavnice', icon: '📊', p: data.book }] : []),
     { key: 'model', label: 'Model', icon: '🧮', p: data.model },
-  ] as const;
+  ];
 
   const chips = [
     `λ ${data.model.lambdaHome}–${data.model.lambdaAway}`,
     `ELO ${data.model.eloHome}·${data.model.eloAway}`,
-    ...(data.book.odds ? [`kvote ${data.book.odds.join(' · ')}`] : []),
+    ...(data.book?.odds ? [`kvote ${data.book.odds.join(' · ')}`] : []),
   ];
 
   return (
