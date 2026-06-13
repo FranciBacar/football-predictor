@@ -156,9 +156,7 @@ export default function AdminClient({
     setLoading('sync')
     setSyncLog(null)
     try {
-      const res = await fetch('/api/cron/sync-results', {
-        headers: { Authorization: `Bearer ${CRON_SECRET}` },
-      })
+      const res = await fetch('/api/admin/run-sync', { method: 'POST' })
       const data = await res.json()
       setSyncLog(`Posodobljeno: ${data.updated ?? 0} | Preskočeno: ${data.skipped ?? 0} | Napake: ${data.errors?.length ?? 0}`)
       const { data: fresh } = await supabase.from('matches').select('*').order('match_time_utc')

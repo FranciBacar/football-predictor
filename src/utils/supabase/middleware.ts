@@ -36,6 +36,7 @@ export async function updateSession(request: NextRequest) {
     || request.nextUrl.pathname.startsWith('/zasebnost')
     || request.nextUrl.pathname.startsWith('/pravila')
     || request.nextUrl.pathname.startsWith('/join')
+    || request.nextUrl.pathname.startsWith('/api/cron/')  // Cron routes — auth via Bearer token
 
   if (!user && !isPublicRoute) {
     // Brez uporabnika na zaščiteni poti -> pošlji na login
