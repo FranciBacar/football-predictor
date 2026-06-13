@@ -158,7 +158,8 @@ export default function AdminClient({
     try {
       const res = await fetch('/api/admin/run-sync', { method: 'POST' })
       const data = await res.json()
-      setSyncLog(`Posodobljeno: ${data.updated ?? 0} | Preskočeno: ${data.skipped ?? 0} | Napake: ${data.errors?.length ?? 0}`)
+      const noMatch = data.noMatch?.length ? `\nNi ujemanja: ${data.noMatch.join(', ')}` : ''
+      setSyncLog(`Posodobljeno: ${data.updated ?? 0} | Preskočeno: ${data.skipped ?? 0} | Napake: ${data.errors?.length ?? 0}${noMatch}`)
       const { data: fresh } = await supabase.from('matches').select('*').order('match_time_utc')
       if (fresh) setLocalMatches(fresh as Match[])
     } catch (e) {

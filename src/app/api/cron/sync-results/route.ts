@@ -43,8 +43,9 @@ const EXTRA_ALIASES: Record<string, string> = {
   // Slonokoščena obala
   'ivorycoast': 'Slonokoščena obala',
   'cotedivoire': 'Slonokoščena obala',
-  // Bosna
+  // Bosna (football-data.org vrne "Bosnia & Herzegovina" → & se odstrani → bosniaherzegovina)
   'bosniaandherzegovina': 'Bosna in Hercegovina',
+  'bosniaherzegovina': 'Bosna in Hercegovina',
   'bosnia': 'Bosna in Hercegovina',
   // DR Kongo
   'drcongodr': 'DR Kongo',
