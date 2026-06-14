@@ -66,8 +66,9 @@ const EXTRA_ALIASES: Record<string, string> = {
   'southafrica': 'Južna Afrika',
   // Savdska Arabija
   'saudiarabia': 'Savdska Arabija',
-  // Curaçao
+  // Curaçao (football-data.org vrne "Curaçao" z ç → normalize odstrani ç → "curaao")
   'curacao': 'Curaçao',
+  'curaao': 'Curaçao',
 }
 
 function apiNameToSl(apiName: string): string | null {
