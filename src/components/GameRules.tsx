@@ -60,7 +60,7 @@ export default function GameRules({ onStart }: { onStart?: () => void }) {
         <Section title="Točkovanje tekem" lead={<>Napoveduješ rezultate po <b>90 minutah</b> — brez podaljškov in enajstmetrovk.</>}>
           <div className="flex flex-col">
             <ScoreRow title="Točen rezultat" example="Napoveš 2 : 1 in tekma se konča 2 : 1." value="3" unit="točke" />
-            <ScoreRow title="Pravilna razlika ali zadetki ene ekipe" example="Napoveš 3 : 1, konča se 2 : 1 — zmagovalec in en rezultat se ujemata." value="2" unit="točki" />
+            <ScoreRow title="Pravilen tip + zadetki ene ekipe" example="Napoveš 3 : 1, konča se 2 : 1 — zmagovalec pravilen, goli ene ekipe se ujemajo." value="2" unit="točki" />
             <ScoreRow title="Pravilen izid" example="Pravilno napoveš zmagovalca ali remi, a brez ujemanja zadetkov." value="1" unit="točka" />
             <ScoreRow title="Napačen izid" example="Napoveš zmago domačih, a izgubijo ali je remi." value="0" unit="točk" zero />
           </div>
@@ -144,7 +144,7 @@ export default function GameRules({ onStart }: { onStart?: () => void }) {
 export function ScoringSummary() {
   const rows: [string, string, boolean?][] = [
     ['Točen rezultat', '3'],
-    ['Pravilna razlika', '2'],
+    ['Pravilen tip + zadetki', '2'],
     ['Pravilen izid', '1'],
     ['Napačen izid', '0', true],
   ];
