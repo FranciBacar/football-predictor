@@ -87,7 +87,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient()
-  const results = { updated: 0, skipped: 0, noMatch: [] as string[], errors: [] as string[] }
+  const results = { updated: 0, skipped: 0, noMatch: [] as string[], errors: [] as string[], unmapped: [] as string[] }
 
   try {
     // 1. Pridobi zaključene tekme iz football-data.org
@@ -124,6 +124,7 @@ export async function GET(request: Request) {
       const apiAway = apiNameToSl(apiMatch.awayTeam?.name ?? '')
 
       if (!apiHome || !apiAway) {
+        results.unmapped.push(`${apiMatch.homeTeam?.name ?? '?'} vs ${apiMatch.awayTeam?.name ?? '?'}`)
         results.skipped++
         continue
       }
