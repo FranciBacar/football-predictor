@@ -56,6 +56,7 @@ const EXTRA_ALIASES: Record<string, string> = {
   // Zelenortski otoki
   'capeverde': 'Zelenortski otoki',
   'caboverde': 'Zelenortski otoki',
+  'capeverdeislands': 'Zelenortski otoki',
   // Nova Zelandija
   'newzealand': 'Nova Zelandija',
   // Južna Koreja
