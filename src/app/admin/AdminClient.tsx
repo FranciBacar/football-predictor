@@ -160,7 +160,8 @@ export default function AdminClient({
       const data = await res.json()
       const noMatch = data.noMatch?.length ? `\nNi ujemanja: ${data.noMatch.join(', ')}` : ''
       const unmapped = data.unmapped?.length ? `\nNeznana imena (API): ${data.unmapped.join(', ')}` : ''
-      setSyncLog(`Posodobljeno: ${data.updated ?? 0} | Preskočeno: ${data.skipped ?? 0} | Napake: ${data.errors?.length ?? 0}${noMatch}${unmapped}`)
+      const nullScore = data.nullScore?.length ? `\nBrez rezultata (API): ${data.nullScore.join(', ')}` : ''
+      setSyncLog(`Posodobljeno: ${data.updated ?? 0} | Preskočeno: ${data.skipped ?? 0} | Napake: ${data.errors?.length ?? 0}${noMatch}${unmapped}${nullScore}`)
       const { data: fresh } = await supabase.from('matches').select('*').order('match_time_utc')
       if (fresh) setLocalMatches(fresh as Match[])
     } catch (e) {

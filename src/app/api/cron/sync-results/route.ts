@@ -87,7 +87,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient()
-  const results = { updated: 0, skipped: 0, noMatch: [] as string[], errors: [] as string[], unmapped: [] as string[] }
+  const results = { updated: 0, skipped: 0, noMatch: [] as string[], errors: [] as string[], unmapped: [] as string[], nullScore: [] as string[] }
 
   try {
     // 1. Pridobi zaključene tekme iz football-data.org
@@ -133,6 +133,7 @@ export async function GET(request: Request) {
       const scoreAway: number | null = apiMatch.score?.fullTime?.away ?? null
 
       if (scoreHome === null || scoreAway === null) {
+        results.nullScore.push(`${apiHome} vs ${apiAway}`)
         results.skipped++
         continue
       }
