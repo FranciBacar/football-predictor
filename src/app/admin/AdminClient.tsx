@@ -159,7 +159,8 @@ export default function AdminClient({
       const res = await fetch('/api/admin/run-sync', { method: 'POST' })
       const data = await res.json()
       const noMatch = data.noMatch?.length ? `\nNi ujemanja: ${data.noMatch.join(', ')}` : ''
-      setSyncLog(`Posodobljeno: ${data.updated ?? 0} | Preskočeno: ${data.skipped ?? 0} | Napake: ${data.errors?.length ?? 0}${noMatch}`)
+      const unmapped = data.unmapped?.length ? `\nNeznana imena (API): ${data.unmapped.join(', ')}` : ''
+      setSyncLog(`Posodobljeno: ${data.updated ?? 0} | Preskočeno: ${data.skipped ?? 0} | Napake: ${data.errors?.length ?? 0}${noMatch}${unmapped}`)
       const { data: fresh } = await supabase.from('matches').select('*').order('match_time_utc')
       if (fresh) setLocalMatches(fresh as Match[])
     } catch (e) {
@@ -258,13 +259,13 @@ export default function AdminClient({
           {/* Vir */}
           <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: '1px solid #f0f0f0' }}>
             <h3 style={{ fontWeight: 700, fontSize: 15, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Globe size={16} style={{ color: '#374151' }} /> Vir — openfootball (brezplačno)
+              <Globe size={16} style={{ color: '#374151' }} /> Vir — football-data.org
             </h3>
             <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
               Rezultati iz{' '}
-              <a href="https://github.com/openfootball/worldcup.json" target="_blank" rel="noopener noreferrer"
-                style={{ color: '#0f766e' }}>openfootball/worldcup.json</a>.
-              Brez API ključa.
+              <a href="https://www.football-data.org" target="_blank" rel="noopener noreferrer"
+                style={{ color: '#0f766e' }}>football-data.org</a>{' '}
+              (zahteva <code>FOOTBALL_DATA_API_KEY</code>).
             </p>
           </div>
 
