@@ -13,7 +13,7 @@
  * Lasti draft-stanje napovedi; ob shranjevanju pokliče onSave(id, score).
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ClosedRow, OpenRow, type Match, type Score } from './ScheduleRow';
 
 const TZ = 'Europe/Ljubljana';
@@ -35,6 +35,13 @@ export default function ScheduleView({ matches, predictions, onSave }: ScheduleV
   const [filter, setFilter] = useState<'all' | 'todo'>('all');
   const [openId, setOpenId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Score>>({});
+
+  // Scroll na današnji dan ob prvem prikazu
+  const todayKey = useMemo(() => dayKeyFmt.format(Date.now()), []);
+  useEffect(() => {
+    const el = document.getElementById(`day-${todayKey}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [todayKey]);
 
   const sorted = useMemo(() => [...matches].sort((a, b) => a.kickoffUtc - b.kickoffUtc), [matches]);
 
@@ -100,7 +107,7 @@ export default function ScheduleView({ matches, predictions, onSave }: ScheduleV
       {days.map((day) => {
         const dayTodo = day.items.filter((m) => m.status === 'open' && !isPredicted(m) && m.id !== openId).length;
         return (
-          <section key={day.key} className="mb-1.5">
+          <section key={day.key} id={`day-${day.key}`} className="mb-1.5 scroll-mt-2">
             <header className="sticky top-0 z-[5] flex items-center justify-between gap-2.5 px-5 py-2.5 backdrop-blur-md" style={{ background: 'rgba(244,246,245,0.92)' }}>
               <div className="flex items-baseline gap-2">
                 <span className="text-[13.5px] font-bold tracking-tight text-[#1a1a1a]">{cap(dowFmt.format(day.ts))}</span>
