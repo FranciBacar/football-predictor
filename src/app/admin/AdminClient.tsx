@@ -69,12 +69,13 @@ const TAB_STYLE_INACTIVE = {
 }
 
 export default function AdminClient({
-  matches, users, groups, specialPredsSummary,
+  matches, users, groups, specialPredsSummary, userName,
 }: {
   matches: Match[]
   users: AdminUser[]
   groups: Group[]
   specialPredsSummary: SpecialPredSummary[]
+  userName: string
 }) {
   const supabase = createClient()
   const [tab, setTab] = useState<'tekme' | 'uporabniki' | 'skupine' | 'posebne'>('tekme')
@@ -232,7 +233,9 @@ export default function AdminClient({
         borderRadius: 18, padding: '20px 20px 16px', marginBottom: 16, color: '#fff',
       }}>
         <div style={{ fontSize: 22, marginBottom: 2 }}>🛡️</div>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: '-0.03em' }}>Admin Panel</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 800, margin: 0, letterSpacing: '-0.03em' }}>
+          {userName ? `Živijo, ${userName}!` : 'Admin Panel'}
+        </h1>
         <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.85 }}>
           {localUsers.length} uporabnikov · {groups.length} skupin · {localMatches.length} tekem
         </p>

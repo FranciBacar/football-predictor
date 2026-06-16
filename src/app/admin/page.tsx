@@ -13,7 +13,7 @@ export default async function AdminPage() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('is_admin')
+    .select('is_admin, name')
     .eq('id', user.id)
     .single()
 
@@ -116,6 +116,7 @@ export default async function AdminPage() {
           users={users}
           groups={groups ?? []}
           specialPredsSummary={specialPredsSummary}
+          userName={profile?.name ?? ''}
         />
       </main>
     </div>
