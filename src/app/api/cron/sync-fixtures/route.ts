@@ -12,8 +12,10 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { SL_TO_API } from '@/lib/teamNameMap'
 
+// Brez status filtra — vzamemo vse tekme, filtriramo v kodi
+// (status=TIMED,SCHEDULED ne deluje zanesljivo pri brezplačnem tier-u)
 const FOOTBALL_DATA_URL =
-  'https://api.football-data.org/v4/competitions/WC/matches?status=TIMED,SCHEDULED'
+  'https://api.football-data.org/v4/competitions/WC/matches'
 
 function isAuthorized(request: Request): boolean {
   const authHeader = request.headers.get('authorization')
@@ -94,7 +96,10 @@ export async function GET(request: Request) {
       throw new Error(`football-data.org ${res.status}: ${body.slice(0, 200)}`)
     }
     const data = await res.json()
-    const upcomingMatches: any[] = data.matches ?? []
+    const SKIP_STATUSES = new Set(['FINISHED', 'IN_PLAY', 'PAUSED', 'SUSPENDED', 'POSTPONED'])
+    const upcomingMatches: any[] = (data.matches ?? []).filter(
+      (m: any) => !SKIP_STATUSES.has(m.status)
+    )
 
     if (upcomingMatches.length === 0) {
       return NextResponse.json({ message: 'Ni prihajajočih tekem v viru.', ...results })
@@ -113,6 +118,10 @@ export async function GET(request: Request) {
     }
 
     // 3. Za vsako prihajoče tekmo iz API-ja → poiščemo ujemajočo TBD tekmo
+    // Sortiramo po datumu da matching poteka kronološko
+    upcomingMatches.sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime())
+    const usedIds = new Set<string>()
+
     for (const apiMatch of upcomingMatches) {
       const apiHomeName = apiMatch.homeTeam?.name ?? ''
       const apiAwayName = apiMatch.awayTeam?.name ?? ''
@@ -132,12 +141,13 @@ export async function GET(request: Request) {
         continue
       }
 
-      // Poišči TBD tekmo po datumu (±2 dni)
+      // Poišči TBD tekmo po uri (±90 min) — vsaka tekma ima unikaten čas
       const apiDate = new Date(apiMatch.utcDate)
       const ourMatch = tbdMatches.find(m => {
+        if (usedIds.has(m.id)) return false
         const matchDate = new Date(m.match_time_utc)
-        const dayDiff = Math.abs(matchDate.getTime() - apiDate.getTime())
-        return dayDiff < 2 * 24 * 60 * 60 * 1000
+        const diffMs = Math.abs(matchDate.getTime() - apiDate.getTime())
+        return diffMs < 90 * 60 * 1000  // ±90 minut
       })
 
       if (!ourMatch) {
@@ -145,6 +155,8 @@ export async function GET(request: Request) {
         results.skipped++
         continue
       }
+
+      usedIds.add(ourMatch.id)
 
       // 4. Posodobi ekipe (samo če je vsaj ena še TBD)
       if (ourMatch.home_team !== 'TBD' && ourMatch.away_team !== 'TBD') {
