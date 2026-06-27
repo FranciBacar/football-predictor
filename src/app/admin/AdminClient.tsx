@@ -140,7 +140,7 @@ export default function AdminClient({
 
   // --- Match state ---
   const [syncLog, setSyncLog] = useState<string | null>(null)
-  const [loading, setLoading] = useState<'sync' | null>(null)
+  const [loading, setLoading] = useState<'sync' | 'fixtures' | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [scoreHome, setScoreHome] = useState('')
   const [scoreAway, setScoreAway] = useState('')
@@ -152,6 +152,25 @@ export default function AdminClient({
   const [localUsers, setLocalUsers] = useState(users)
   const [togglingAdmin, setTogglingAdmin] = useState<string | null>(null)
   const [userSearch, setUserSearch] = useState('')
+
+  const [fixtureLog, setFixtureLog] = useState<string | null>(null)
+
+  const runFixtureSync = async () => {
+    setLoading('fixtures')
+    setFixtureLog(null)
+    try {
+      const res = await fetch('/api/admin/run-fixture-sync', { method: 'POST' })
+      const data = await res.json()
+      const noMatch = data.noMatch?.length ? `\nNi ujemanja: ${data.noMatch.join(', ')}` : ''
+      const unmapped = data.unmapped?.length ? `\nNeznana imena (API): ${data.unmapped.join(', ')}` : ''
+      setFixtureLog(`Posodobljeno: ${data.updated ?? 0} | Preskočeno: ${data.skipped ?? 0}${noMatch}${unmapped}`)
+      const { data: fresh } = await supabase.from('matches').select('*').order('match_time_utc')
+      if (fresh) setLocalMatches(fresh as Match[])
+    } catch (e) {
+      setFixtureLog(`❌ Napaka: ${e}`)
+    }
+    setLoading(null)
+  }
 
   const runSync = async () => {
     setLoading('sync')
@@ -281,7 +300,13 @@ export default function AdminClient({
             <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 12px' }}>
               Zaključene: {finishedMatches.length} | Čaka: {pendingMatches.length}
             </p>
-            <button onClick={runSync} disabled={loading === 'sync'}
+            <button onClick={runFixtureSync} disabled={!!loading}
+              className="w-full bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 mb-2">
+              <RefreshCw size={16} className={loading === 'fixtures' ? 'animate-spin' : ''} />
+              {loading === 'fixtures' ? 'Posodabljam tekmice...' : 'Sync tekmičev (TBD → ekipe)'}
+            </button>
+            {fixtureLog && <div style={{ marginBottom: 8, background: '#eff6ff', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontFamily: 'monospace' }}>{fixtureLog}</div>}
+            <button onClick={runSync} disabled={!!loading}
               className="w-full bg-emerald-600 text-white font-medium py-2.5 rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2">
               <RefreshCw size={16} className={loading === 'sync' ? 'animate-spin' : ''} />
               {loading === 'sync' ? 'Syncam...' : 'Ročni sync zdaj'}
