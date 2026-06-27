@@ -117,12 +117,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Ni TBD tekem v bazi.', ...results })
     }
 
+    // Mapiranje API stage → naš DB stage
+    const STAGE_MAP: Record<string, string> = {
+      'LAST_32': 'Round of 32',
+      'LAST_16': 'Round of 16',
+      'QUARTER_FINALS': 'Quarter-finals',
+      'SEMI_FINALS': 'Semi-finals',
+      'THIRD_PLACE': 'Third place play-off',
+      'FINAL': 'Final',
+    }
+
     // 3. Za vsako prihajoče tekmo iz API-ja → poiščemo ujemajočo TBD tekmo
-    // Sortiramo po datumu da matching poteka kronološko
+    // Matchamo po stage + najbližji čas (naši DB časi so lahko napačni za več ur)
     upcomingMatches.sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime())
     const usedIds = new Set<string>()
 
     for (const apiMatch of upcomingMatches) {
+      const apiStageName = STAGE_MAP[apiMatch.stage]
+      if (!apiStageName) {
+        results.skipped++
+        continue
+      }
+
       const apiHomeName = apiMatch.homeTeam?.name ?? ''
       const apiAwayName = apiMatch.awayTeam?.name ?? ''
 
@@ -141,37 +157,41 @@ export async function GET(request: Request) {
         continue
       }
 
-      // Poišči TBD tekmo po uri (±90 min) — vsaka tekma ima unikaten čas
       const apiDate = new Date(apiMatch.utcDate)
-      const ourMatch = tbdMatches.find(m => {
-        if (usedIds.has(m.id)) return false
-        const matchDate = new Date(m.match_time_utc)
-        const diffMs = Math.abs(matchDate.getTime() - apiDate.getTime())
-        return diffMs < 90 * 60 * 1000  // ±90 minut
-      })
 
-      if (!ourMatch) {
-        results.noMatch.push(`${apiHome} vs ${apiAway}`)
+      // Poišči najbližjo neporabljeno TBD tekmo istega stage-a
+      // Brez časovne limite — naši DB časi so napačni (do 14h zamik)
+      let bestMatch: typeof tbdMatches[0] | null = null
+      let bestDiff = Infinity
+
+      for (const m of tbdMatches) {
+        if (usedIds.has(m.id)) continue
+        if (m.stage !== apiStageName) continue
+        const diff = Math.abs(new Date(m.match_time_utc).getTime() - apiDate.getTime())
+        if (diff < bestDiff) {
+          bestDiff = diff
+          bestMatch = m
+        }
+      }
+
+      if (!bestMatch) {
+        results.noMatch.push(`${apiHome} vs ${apiAway} (stage: ${apiStageName})`)
         results.skipped++
         continue
       }
 
-      usedIds.add(ourMatch.id)
+      usedIds.add(bestMatch.id)
 
-      // 4. Posodobi ekipe (samo če je vsaj ena še TBD)
-      if (ourMatch.home_team !== 'TBD' && ourMatch.away_team !== 'TBD') {
-        results.skipped++
-        continue
-      }
-
+      // 4. Posodobi ekipe IN popravimo match_time_utc na dejanski čas iz API-ja
       const { error: updateError } = await supabase
         .from('matches')
         .update({
           home_team: apiHome,
           away_team: apiAway,
+          match_time_utc: apiDate.toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', ourMatch.id)
+        .eq('id', bestMatch.id)
 
       if (updateError) {
         results.errors.push(`${apiHome} vs ${apiAway}: ${updateError.message}`)
