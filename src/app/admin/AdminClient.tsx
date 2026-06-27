@@ -303,7 +303,7 @@ export default function AdminClient({
             <button onClick={runFixtureSync} disabled={!!loading}
               className="w-full bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 mb-2">
               <RefreshCw size={16} className={loading === 'fixtures' ? 'animate-spin' : ''} />
-              {loading === 'fixtures' ? 'Posodabljam tekmice...' : 'Sync tekmičev (TBD → ekipe)'}
+              {loading === 'fixtures' ? 'Posodabljam...' : 'Sync prihajajočih tekem'}
             </button>
             {fixtureLog && <div style={{ marginBottom: 8, background: '#eff6ff', borderRadius: 8, padding: '10px 14px', fontSize: 13, fontFamily: 'monospace' }}>{fixtureLog}</div>}
             <button onClick={runSync} disabled={!!loading}
