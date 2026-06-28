@@ -19,6 +19,8 @@ function toPlayer(e: any, currentUserId: string): Player {
     sub: `${e.exact_predictions ?? 0} točnih`,
     exact: e.exact_predictions ?? 0,
     points: e.total_points ?? 0,
+    matchPoints: e.match_points ?? undefined,
+    specialPoints: e.special_points ?? undefined,
     avatarUrl: e.avatar_url ?? null,
     initials,
     you: e.user_id === currentUserId,
@@ -51,6 +53,8 @@ export default async function LeaderboardPage({
       user_id: u.id,
       name: u.name,
       avatar_url: u.avatar_url ?? null,
+      match_points: 0,
+      special_points: 0,
       total_points: 0,
       exact_predictions: 0,
     }
@@ -77,10 +81,8 @@ export default async function LeaderboardPage({
         .from('special_predictions')
         .select('earned_points')
         .eq('user_id', kid.id)
-      const total = [
-        ...(preds ?? []).map((p: any) => p.earned_points ?? 0),
-        ...(special ?? []).map((s: any) => s.earned_points ?? 0),
-      ].reduce((a: number, b: number) => a + b, 0)
+      const matchPoints = (preds ?? []).reduce((s: number, p: any) => s + (p.earned_points ?? 0), 0)
+      const specialPoints = (special ?? []).reduce((s: number, p: any) => s + (p.earned_points ?? 0), 0)
       const exact = (preds ?? []).filter(
         (p: any) => p.earned_points === 3 || p.earned_points === 6
       ).length
@@ -88,7 +90,9 @@ export default async function LeaderboardPage({
         user_id: kid.id,
         name: kid.name,
         avatar_url: null,
-        total_points: total,
+        match_points: matchPoints,
+        special_points: specialPoints,
+        total_points: matchPoints + specialPoints,
         exact_predictions: exact,
       }
     })
@@ -125,16 +129,16 @@ export default async function LeaderboardPage({
             supabase.from('predictions').select('earned_points, pred_score_home, pred_score_away, match_id').eq('user_id', u.id),
             supabase.from('special_predictions').select('earned_points').eq('user_id', u.id),
           ])
-          const total = [
-            ...(preds ?? []).map((p: any) => p.earned_points ?? 0),
-            ...(special ?? []).map((s: any) => s.earned_points ?? 0),
-          ].reduce((a: number, b: number) => a + b, 0)
+          const matchPoints = (preds ?? []).reduce((s: number, p: any) => s + (p.earned_points ?? 0), 0)
+          const specialPoints = (special ?? []).reduce((s: number, p: any) => s + (p.earned_points ?? 0), 0)
           const exact = (preds ?? []).filter((p: any) => p.earned_points === 3 || p.earned_points === 6).length
           return {
             user_id: u.id,
             name: u.name ?? '',
             avatar_url: u.avatar_url ?? null,
-            total_points: total,
+            match_points: matchPoints,
+            special_points: specialPoints,
+            total_points: matchPoints + specialPoints,
             exact_predictions: exact,
           }
         })

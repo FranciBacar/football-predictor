@@ -17,6 +17,8 @@ export type Player = {
   sub?: string;          // npr. "9 napovedi"
   exact: number;         // točni rezultati (3-točkovni) — tie-break
   points: number;
+  matchPoints?: number;    // točke iz napovedi tekem
+  specialPoints?: number;  // točke iz posebnih napovedi
   avatarUrl?: string | null;
   initials: string;      // fallback, če ni slike
   you?: boolean;
@@ -48,8 +50,9 @@ function Avatar({ p }: { p: Player }) {
 }
 
 function Row({ p, rank }: { p: Player; rank: number }) {
+  const showBreakdown = p.matchPoints !== undefined && p.specialPoints !== undefined;
   return (
-    <div className={`relative grid grid-cols-[58px_1fr_78px_86px] items-center border-b border-[#ebeeec] px-5 py-[13px] transition-colors last:border-b-0 max-[520px]:grid-cols-[46px_1fr_56px_66px] max-[520px]:px-3.5 ${p.you ? 'bg-[#e9f7f5]' : 'hover:bg-[#fafbfb]'}`}>
+    <div className={`relative grid grid-cols-[58px_1fr_44px_104px] items-center border-b border-[#ebeeec] px-5 py-[13px] transition-colors last:border-b-0 max-[520px]:grid-cols-[46px_1fr_36px_90px] max-[520px]:px-3.5 ${p.you ? 'bg-[#e9f7f5]' : 'hover:bg-[#fafbfb]'}`}>
       {p.you && <span className="absolute inset-y-0 left-0 w-[3px] bg-[#0f766e]" />}
       <div className="flex items-center justify-center">
         {rank <= 3
@@ -66,7 +69,16 @@ function Row({ p, rank }: { p: Player; rank: number }) {
         </div>
       </div>
       <div className="text-center text-[14px] font-semibold tabular-nums text-[#475467]">{p.exact}</div>
-      <div className={`text-right text-[18px] font-extrabold tabular-nums tracking-[-0.02em] ${p.you ? 'text-[#0f766e]' : p.points === 0 ? 'text-[#c2c7cd]' : 'text-[#15201d]'}`}>{p.points}</div>
+      <div className="text-right">
+        <div className={`text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none ${p.you ? 'text-[#0f766e]' : p.points === 0 ? 'text-[#c2c7cd]' : 'text-[#15201d]'}`}>
+          {p.points}
+        </div>
+        {showBreakdown && (
+          <div className="mt-[4px] text-[10px] font-medium tabular-nums text-[#b0b8c1] leading-none whitespace-nowrap">
+            tek. {p.matchPoints} · pos. {p.specialPoints}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -92,8 +104,11 @@ export default function Leaderboard({ title = 'Lestvica', subtitle = 'Razvršče
       </div>
 
       <div className="overflow-hidden rounded-[18px] border border-[#ebeeec] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.03),0_12px_30px_rgba(16,24,40,0.05)]">
-        <div className="grid grid-cols-[58px_1fr_78px_86px] border-b border-[#ebeeec] bg-[#fcfdfd] px-5 py-[13px] text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#9aa1ab] max-[520px]:grid-cols-[46px_1fr_56px_66px] max-[520px]:px-3.5">
-          <div className="text-center">#</div><div>Igralec</div><div className="text-center">Točne napovedi</div><div className="text-right">Točke</div>
+        <div className="grid grid-cols-[58px_1fr_44px_104px] border-b border-[#ebeeec] bg-[#fcfdfd] px-5 py-[13px] text-[10.5px] font-bold uppercase tracking-[0.07em] text-[#9aa1ab] max-[520px]:grid-cols-[46px_1fr_36px_90px] max-[520px]:px-3.5">
+          <div className="text-center">#</div>
+          <div>Igralec</div>
+          <div className="text-center">Točni</div>
+          <div className="text-right">Točke skupaj</div>
         </div>
         {rows.map((p, i) => <Row key={p.id} p={p} rank={i + 1} />)}
         {rows.length === 0 && (
