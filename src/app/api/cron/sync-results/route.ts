@@ -108,11 +108,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Ni zaključenih tekem v viru.', ...results })
     }
 
-    // 2. Pridobi naše tekme ki niso Finished
+    // 2. Pridobi naše tekme (tudi Finished — popravimo napačne ocene npr. po VAR)
     const { data: ourMatches, error: dbError } = await supabase
       .from('matches')
-      .select('id, home_team, away_team, match_time_utc, is_knockout, status')
-      .neq('status', 'Finished')
+      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away')
+      .neq('status', 'Upcoming')
 
     if (dbError) throw new Error(dbError.message)
     if (!ourMatches || ourMatches.length === 0) {
@@ -166,7 +166,17 @@ export async function GET(request: Request) {
         }
       }
 
-      // 5. Posodobi tekmo — trigger samodejno izračuna točke!
+      // 5. Preskoči če je score že enak (brez nepotrebnih updateov)
+      if (
+        ourMatch.status === 'Finished' &&
+        ourMatch.actual_score_home === scoreHome &&
+        ourMatch.actual_score_away === scoreAway
+      ) {
+        results.skipped++
+        continue
+      }
+
+      // Posodobi tekmo — trigger samodejno izračuna točke!
       const { error: updateError } = await supabase
         .from('matches')
         .update({

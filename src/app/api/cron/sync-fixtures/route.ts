@@ -117,6 +117,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Ni TBD tekem v bazi.', ...results })
     }
 
+    // Pridobi obstoječe poimenovane tekme (za preverjanje duplikatov)
+    const { data: namedMatches } = await supabase
+      .from('matches')
+      .select('home_team, away_team, stage')
+      .neq('home_team', 'TBD')
+      .neq('away_team', 'TBD')
+      .eq('status', 'Upcoming')
+
+    const existingPairs = new Set(
+      (namedMatches ?? []).map(m => `${m.stage}:${m.home_team}:${m.away_team}`)
+    )
+
     // Mapiranje API stage → naš DB stage
     const STAGE_MAP: Record<string, string> = {
       'LAST_32': 'Round of 32',
@@ -153,6 +165,12 @@ export async function GET(request: Request) {
 
       if (!apiHome || !apiAway) {
         results.unmapped.push(`${apiHomeName} vs ${apiAwayName}`)
+        results.skipped++
+        continue
+      }
+
+      // Preskoči če ta par že obstaja v DB (prepreči duplikate)
+      if (existingPairs.has(`${apiStageName}:${apiHome}:${apiAway}`)) {
         results.skipped++
         continue
       }
