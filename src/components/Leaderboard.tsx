@@ -106,8 +106,9 @@ export default function Leaderboard({
       );
   }, [tab, rowsByTab, matchOnly]);
 
-  // Preverimo ali imamo matchPoints podatke (ne pri vseh zavihkih nujno)
-  const hasBreakdownData = (rowsByTab[tab] ?? []).some(p => p.matchPoints !== undefined);
+  // Toggle pokaži samo ko VISI imajo matchPoints (ne samo kakšen)
+  const tabRows = rowsByTab[tab] ?? [];
+  const hasBreakdownData = tabRows.length > 0 && tabRows.every(p => p.matchPoints !== undefined);
 
   return (
     <div className="mx-auto max-w-[680px]">
@@ -134,9 +135,34 @@ export default function Leaderboard({
           <button
             type="button"
             onClick={() => setMatchOnly(v => !v)}
-            className={`cursor-pointer rounded-[10px] border px-4 py-[9px] text-[13px] font-semibold tracking-tight transition whitespace-nowrap ${matchOnly ? 'border-[#0f766e] bg-[#0f766e] text-white' : 'border-[#ebeeec] bg-white text-[#475467] hover:border-[#d8dddb]'}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '7px 13px 7px 9px',
+              borderRadius: 999,
+              border: `1.5px solid ${matchOnly ? '#0f766e' : '#d1d5db'}`,
+              background: matchOnly ? '#f0fdf9' : '#f9fafb',
+              color: matchOnly ? '#0f766e' : '#6b7280',
+              fontSize: 12.5, fontWeight: 600,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+              transition: 'all 0.15s',
+            }}
           >
-            {matchOnly ? '✓ Brez posebnih' : 'Brez posebnih'}
+            {/* Toggle pill */}
+            <span style={{
+              display: 'inline-flex', width: 28, height: 16, borderRadius: 999,
+              background: matchOnly ? '#0f766e' : '#d1d5db',
+              position: 'relative', flexShrink: 0,
+              transition: 'background 0.15s',
+            }}>
+              <span style={{
+                position: 'absolute', top: 2,
+                left: matchOnly ? 14 : 2,
+                width: 12, height: 12, borderRadius: '50%',
+                background: '#fff',
+                transition: 'left 0.15s',
+              }} />
+            </span>
+            Brez posebnih napovedi
           </button>
         )}
       </div>
