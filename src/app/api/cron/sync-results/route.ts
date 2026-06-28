@@ -108,15 +108,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Ni zaključenih tekem v viru.', ...results })
     }
 
-    // 2. Pridobi naše tekme (tudi Finished — popravimo napačne ocene npr. po VAR)
+    // 2. Pridobi VSE naše tekme — API filtrira FINISHED, mi pa lovimo tudi Upcoming knockout tekme
+    // ki so v bazi še Upcoming čeprav so bile že odigrane (+ Finished za VAR korekcije)
     const { data: ourMatches, error: dbError } = await supabase
       .from('matches')
       .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away')
-      .neq('status', 'Upcoming')
 
     if (dbError) throw new Error(dbError.message)
     if (!ourMatches || ourMatches.length === 0) {
-      return NextResponse.json({ message: 'Vse tekme so že zaključene.', ...results })
+      return NextResponse.json({ message: 'Ni tekem v bazi.', ...results })
     }
 
     // 3. Za vsako zaključeno tekmo → poiščemo v naši bazi
