@@ -6,6 +6,7 @@ import { TEAM_DATA } from '@/lib/teamData'
 import SpecialPredictions, {
   type SpecialState,
   type TeamOption,
+  type ItemResult,
 } from '@/components/SpecialPredictions'
 
 // Zaklepanje: 11. junij 2026 ob 18:00 UTC
@@ -53,6 +54,27 @@ const groups = Object.entries(GROUP_TEAMS).map(([id, teams]) => ({
 }))
 
 const TOTAL_COUNT = 15 // 3 glavne + 12 skupin
+
+// ── initialPreds → results (correct/wrong/pending) ────────────
+function toResults(preds: SpecialPred[]): Record<string, ItemResult> {
+  const out: Record<string, ItemResult> = {}
+  preds.forEach((p) => {
+    let key: string | null = null
+    if (p.prediction_type === 'tournament_winner') key = 'champion'
+    else if (p.prediction_type === 'top_scorer') key = 'topScorer'
+    else if (p.prediction_type === 'best_player') key = 'bestPlayer'
+    else if (p.prediction_type.startsWith('group_winner_'))
+      key = `group:${p.prediction_type.replace('group_winner_', '')}`
+    if (!key) return
+    if (p.correct_answer !== null) {
+      out[key] = p.earned_points > 0
+        ? { status: 'correct', points: p.earned_points }
+        : { status: 'wrong', actual: p.correct_answer }
+    }
+    // correct_answer === null → pending (ni vnosa = status 'pending' v komponenti)
+  })
+  return out
+}
 
 // ── initialPreds → SpecialState ────────────────────────────────
 function toSpecialState(preds: SpecialPred[]): SpecialState {
@@ -125,6 +147,7 @@ export default function SpecialPredictionsContainer({
 
   const [localState, setLocalState] = useState<SpecialState>(() => toSpecialState(initialPreds))
   const [savedState, setSavedState] = useState<SpecialState>(() => toSpecialState(initialPreds))
+  const [preds, setPreds] = useState<SpecialPred[]>(initialPreds)
   const [toast, setToast] = useState<string | null>(null)
 
   // Ob vsakem mountu (key={userId} se spremeni) fetchaj svježe podatke za tega userja.
@@ -135,9 +158,11 @@ export default function SpecialPredictionsContainer({
       .select('*')
       .eq('user_id', userId)
       .then(({ data }) => {
-        const next = toSpecialState(data ?? [])
+        const rows = data ?? []
+        const next = toSpecialState(rows)
         setLocalState(next)
         setSavedState(next)
+        setPreds(rows)
       })
   }, [userId])
 
@@ -175,6 +200,7 @@ export default function SpecialPredictionsContainer({
         lockLabel="11. junija ob 20:00"
         maxBonus={66}
         locked={isLocked}
+        results={toResults(preds)}
         onChange={handleChange}
         onSave={handleSave}
       />

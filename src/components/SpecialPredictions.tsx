@@ -110,7 +110,8 @@ export default function SpecialPredictions(p: SpecialPredictionsProps) {
     const tally = (key: string, pot: number) => {
       const r = results?.[key];
       if (r?.status === 'correct') won += r.points ?? pot;
-      else live += pot; // pending ali še neocenjeno = potencial ostaja v igri
+      else if (!r || r.status === 'pending') live += pot;
+      // wrong → niti won niti live
     };
     if (disabled) {
       tally('champion', 10); tally('topScorer', 10); tally('bestPlayer', 10);
