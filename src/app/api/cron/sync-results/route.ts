@@ -143,12 +143,24 @@ export async function GET(request: Request) {
       const apiDate = new Date(apiMatch.utcDate)
 
       // Poišči ujemajočo tekmo (isti ekipi + isti dan ±2 dni)
-      const ourMatch = ourMatches.find(m => {
+      // Preizkusi oba vrstna reda home/away (API in naša baza se lahko razlikujeta)
+      let ourMatch = ourMatches.find(m => {
         const matchDate = new Date(m.match_time_utc)
         const dayDiff = Math.abs(matchDate.getTime() - apiDate.getTime())
         const within2Days = dayDiff < 2 * 24 * 60 * 60 * 1000
         return m.home_team === apiHome && m.away_team === apiAway && within2Days
       })
+      let scoresReversed = false
+      if (!ourMatch) {
+        // Poizkusi z obrnjenim vrstnim redom
+        ourMatch = ourMatches.find(m => {
+          const matchDate = new Date(m.match_time_utc)
+          const dayDiff = Math.abs(matchDate.getTime() - apiDate.getTime())
+          const within2Days = dayDiff < 2 * 24 * 60 * 60 * 1000
+          return m.home_team === apiAway && m.away_team === apiHome && within2Days
+        })
+        if (ourMatch) scoresReversed = true
+      }
 
       if (!ourMatch) {
         results.noMatch.push(`${apiHome} vs ${apiAway}`)
@@ -156,21 +168,28 @@ export async function GET(request: Request) {
         continue
       }
 
+      // Pravilni score glede na vrstni red v bazi
+      const finalScoreHome = scoresReversed ? scoreAway : scoreHome
+      const finalScoreAway = scoresReversed ? scoreHome : scoreAway
+
       // 4. Določi advancing_team za izločilne boje (penalti)
       let actualAdvancingTeam: string | null = null
-      if (ourMatch.is_knockout && scoreHome === scoreAway) {
+      if (ourMatch.is_knockout && finalScoreHome === finalScoreAway) {
         const penHome: number | null = apiMatch.score?.penalties?.home ?? null
         const penAway: number | null = apiMatch.score?.penalties?.away ?? null
         if (penHome !== null && penAway !== null) {
-          actualAdvancingTeam = penHome > penAway ? ourMatch.home_team : ourMatch.away_team
+          // Upoštevaj obrnjenost pri penaltih
+          const finalPenHome = scoresReversed ? penAway : penHome
+          const finalPenAway = scoresReversed ? penHome : penAway
+          actualAdvancingTeam = finalPenHome > finalPenAway ? ourMatch.home_team : ourMatch.away_team
         }
       }
 
       // 5. Preskoči če je score že enak (brez nepotrebnih updateov)
       if (
         ourMatch.status === 'Finished' &&
-        ourMatch.actual_score_home === scoreHome &&
-        ourMatch.actual_score_away === scoreAway
+        ourMatch.actual_score_home === finalScoreHome &&
+        ourMatch.actual_score_away === finalScoreAway
       ) {
         results.skipped++
         continue
@@ -181,8 +200,8 @@ export async function GET(request: Request) {
         .from('matches')
         .update({
           status: 'Finished',
-          actual_score_home: scoreHome,
-          actual_score_away: scoreAway,
+          actual_score_home: finalScoreHome,
+          actual_score_away: finalScoreAway,
           actual_advancing_team: actualAdvancingTeam,
           updated_at: new Date().toISOString(),
         })
