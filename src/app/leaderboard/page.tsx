@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import Navbar from '@/components/Navbar'
 import LeaderboardClient from './LeaderboardClient'
 import { redirect } from 'next/navigation'
@@ -33,6 +34,7 @@ export default async function LeaderboardPage({
   searchParams: Promise<{ group?: string }>
 }) {
   const supabase = await createClient()
+  const admin = createAdminClient() // za branje točk vseh uporabnikov (RLS bypass)
   const { group: groupId } = await searchParams
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -49,12 +51,11 @@ export default async function LeaderboardPage({
   const pointsMap = new Map((globalRpc ?? []).map((e: any) => [e.user_id, e]))
   const globalRaw: any[] = (allUsers ?? []).map((u) => {
     const entry = pointsMap.get(u.id)
+    // Brez match_points/special_points — ti pridejo iz RPC ko bo SQL posodobljen
     return entry ?? {
       user_id: u.id,
       name: u.name,
       avatar_url: u.avatar_url ?? null,
-      match_points: 0,
-      special_points: 0,
       total_points: 0,
       exact_predictions: 0,
     }
@@ -73,11 +74,11 @@ export default async function LeaderboardPage({
 
   const kidsWithPoints = await Promise.all(
     (kidsRaw ?? []).map(async (kid) => {
-      const { data: preds } = await supabase
+      const { data: preds } = await admin
         .from('predictions')
         .select('earned_points')
         .eq('user_id', kid.id)
-      const { data: special } = await supabase
+      const { data: special } = await admin
         .from('special_predictions')
         .select('earned_points')
         .eq('user_id', kid.id)
@@ -126,8 +127,8 @@ export default async function LeaderboardPage({
       const members = await Promise.all(
         (userRows ?? []).map(async (u: any) => {
           const [{ data: preds }, { data: special }] = await Promise.all([
-            supabase.from('predictions').select('earned_points, pred_score_home, pred_score_away, match_id').eq('user_id', u.id),
-            supabase.from('special_predictions').select('earned_points').eq('user_id', u.id),
+            admin.from('predictions').select('earned_points, pred_score_home, pred_score_away, match_id').eq('user_id', u.id),
+            admin.from('special_predictions').select('earned_points').eq('user_id', u.id),
           ])
           const matchPoints = (preds ?? []).reduce((s: number, p: any) => s + (p.earned_points ?? 0), 0)
           const specialPoints = (special ?? []).reduce((s: number, p: any) => s + (p.earned_points ?? 0), 0)
