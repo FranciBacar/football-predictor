@@ -28,11 +28,19 @@ function GroupScoredBanner() {
   }
 
   return (
-    <div style={{
-      position: 'fixed', bottom: 72, left: 0, right: 0, zIndex: 90,
-      padding: '0 12px',
-      pointerEvents: 'none',
-    }}>
+    <>
+      <style>{`
+        .group-banner-wrap {
+          position: fixed; bottom: 72px; left: 0; right: 0; z-index: 90;
+          padding: 0 12px; pointer-events: none;
+        }
+        @media (min-width: 768px) {
+          .group-banner-wrap {
+            bottom: auto; top: 64px; padding: 0 24px;
+          }
+        }
+      `}</style>
+    <div className="group-banner-wrap">
       <div style={{
         maxWidth: 640, margin: '0 auto',
         background: 'linear-gradient(135deg, #0f766e 0%, #0c5f58 100%)',
@@ -72,6 +80,7 @@ function GroupScoredBanner() {
         >×</button>
       </div>
     </div>
+    </>
   )
 }
 
