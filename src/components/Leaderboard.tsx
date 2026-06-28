@@ -9,7 +9,7 @@
  * Brand: teal #0f766e · ink #15201d · line #ebeeec.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 export type Player = {
   id: string;
@@ -27,15 +27,15 @@ export type Player = {
 export type LeaderboardProps = {
   title?: string;
   subtitle?: string;
-  tabs: string[];                 // npr. ['Globalna','Otroci','Goodish']
-  rowsByTab: Record<string, Player[]>;  // že razvrščeno padajoče
+  tabs: string[];
+  rowsByTab: Record<string, Player[]>;
   defaultTab?: string;
 };
 
 const MEDAL = [
-  'bg-[linear-gradient(140deg,#f3d989,#d8b24a)] text-[#7a5a12]', // gold
-  'bg-[linear-gradient(140deg,#eef1f4,#bdc4cd)] text-[#5a626c]', // silver
-  'bg-[linear-gradient(140deg,#ecca9f,#c08a55)] text-[#6e4824]', // bronze
+  'bg-[linear-gradient(140deg,#f3d989,#d8b24a)] text-[#7a5a12]',
+  'bg-[linear-gradient(140deg,#eef1f4,#bdc4cd)] text-[#5a626c]',
+  'bg-[linear-gradient(140deg,#ecca9f,#c08a55)] text-[#6e4824]',
 ];
 
 function Avatar({ p }: { p: Player }) {
@@ -49,8 +49,10 @@ function Avatar({ p }: { p: Player }) {
   );
 }
 
-function Row({ p, rank }: { p: Player; rank: number }) {
-  const showBreakdown = p.matchPoints !== undefined && p.specialPoints !== undefined;
+function Row({ p, rank, matchOnly }: { p: Player; rank: number; matchOnly: boolean }) {
+  const displayPoints = matchOnly ? (p.matchPoints ?? p.points) : p.points;
+  const showBreakdown = !matchOnly && p.matchPoints !== undefined && p.specialPoints !== undefined;
+
   return (
     <div className={`relative grid grid-cols-[58px_1fr_44px_104px] items-center border-b border-[#ebeeec] px-5 py-[13px] transition-colors last:border-b-0 max-[520px]:grid-cols-[46px_1fr_36px_90px] max-[520px]:px-3.5 ${p.you ? 'bg-[#e9f7f5]' : 'hover:bg-[#fafbfb]'}`}>
       {p.you && <span className="absolute inset-y-0 left-0 w-[3px] bg-[#0f766e]" />}
@@ -70,8 +72,8 @@ function Row({ p, rank }: { p: Player; rank: number }) {
       </div>
       <div className="text-center text-[14px] font-semibold tabular-nums text-[#475467]">{p.exact}</div>
       <div className="text-right">
-        <div className={`text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none ${p.you ? 'text-[#0f766e]' : p.points === 0 ? 'text-[#c2c7cd]' : 'text-[#15201d]'}`}>
-          {p.points}
+        <div className={`text-[18px] font-extrabold tabular-nums tracking-[-0.02em] leading-none ${p.you ? 'text-[#0f766e]' : displayPoints === 0 ? 'text-[#c2c7cd]' : 'text-[#15201d]'}`}>
+          {displayPoints}
         </div>
         {showBreakdown && (
           <div className="mt-[4px] text-[10px] font-medium tabular-nums text-[#b0b8c1] leading-none whitespace-nowrap">
@@ -83,24 +85,60 @@ function Row({ p, rank }: { p: Player; rank: number }) {
   );
 }
 
-export default function Leaderboard({ title = 'Lestvica', subtitle = 'Razvrščeni po skupnih točkah. Pri izenačitvi odloča število točnih rezultatov.', tabs, rowsByTab, defaultTab }: LeaderboardProps) {
+export default function Leaderboard({
+  title = 'Lestvica',
+  subtitle = 'Razvrščeni po skupnih točkah. Pri izenačitvi odloča število točnih rezultatov.',
+  tabs,
+  rowsByTab,
+  defaultTab,
+}: LeaderboardProps) {
   const [tab, setTab] = useState(defaultTab ?? tabs[0]);
-  const rows = rowsByTab[tab] ?? [];
+  const [matchOnly, setMatchOnly] = useState(false);
+
+  const rows = useMemo(() => {
+    const base = rowsByTab[tab] ?? [];
+    if (!matchOnly) return base;
+    return [...base]
+      .sort((a, b) =>
+        (b.matchPoints ?? b.points) - (a.matchPoints ?? a.points) ||
+        b.exact - a.exact ||
+        a.name.localeCompare(b.name)
+      );
+  }, [tab, rowsByTab, matchOnly]);
+
+  // Preverimo ali imamo matchPoints podatke (ne pri vseh zavihkih nujno)
+  const hasBreakdownData = (rowsByTab[tab] ?? []).some(p => p.matchPoints !== undefined);
 
   return (
     <div className="mx-auto max-w-[680px]">
       <div className="mb-[18px]">
         <h1 className="m-0 text-[26px] font-extrabold tracking-[-0.025em]">{title}</h1>
-        <p className="mt-[7px] text-[13.5px] text-[#6b7280]">{subtitle}</p>
+        <p className="mt-[7px] text-[13.5px] text-[#6b7280]">
+          {matchOnly
+            ? 'Samo točke napovedi tekem (brez posebnih napovedi).'
+            : subtitle}
+        </p>
       </div>
 
-      <div className="mb-[18px] flex flex-wrap gap-2">
-        {tabs.map((t) => (
-          <button key={t} type="button" onClick={() => setTab(t)}
-            className={`cursor-pointer rounded-[10px] border px-4 py-[9px] text-[13px] font-semibold tracking-tight transition ${t === tab ? 'border-[#15201d] bg-[#15201d] text-white' : 'border-[#ebeeec] bg-white text-[#475467] hover:border-[#d8dddb]'}`}>
-            {t}
+      <div className="mb-[14px] flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((t) => (
+            <button key={t} type="button" onClick={() => setTab(t)}
+              className={`cursor-pointer rounded-[10px] border px-4 py-[9px] text-[13px] font-semibold tracking-tight transition ${t === tab ? 'border-[#15201d] bg-[#15201d] text-white' : 'border-[#ebeeec] bg-white text-[#475467] hover:border-[#d8dddb]'}`}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {hasBreakdownData && (
+          <button
+            type="button"
+            onClick={() => setMatchOnly(v => !v)}
+            className={`cursor-pointer rounded-[10px] border px-4 py-[9px] text-[13px] font-semibold tracking-tight transition whitespace-nowrap ${matchOnly ? 'border-[#0f766e] bg-[#0f766e] text-white' : 'border-[#ebeeec] bg-white text-[#475467] hover:border-[#d8dddb]'}`}
+          >
+            {matchOnly ? '✓ Brez posebnih' : 'Brez posebnih'}
           </button>
-        ))}
+        )}
       </div>
 
       <div className="overflow-hidden rounded-[18px] border border-[#ebeeec] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.03),0_12px_30px_rgba(16,24,40,0.05)]">
@@ -108,9 +146,9 @@ export default function Leaderboard({ title = 'Lestvica', subtitle = 'Razvršče
           <div className="text-center">#</div>
           <div>Igralec</div>
           <div className="text-center">Točni</div>
-          <div className="text-right">Točke skupaj</div>
+          <div className="text-right">{matchOnly ? 'Točke tekem' : 'Točke skupaj'}</div>
         </div>
-        {rows.map((p, i) => <Row key={p.id} p={p} rank={i + 1} />)}
+        {rows.map((p, i) => <Row key={p.id} p={p} rank={i + 1} matchOnly={matchOnly} />)}
         {rows.length === 0 && (
           <div className="px-5 py-10 text-center text-[13.5px] text-[#9aa1ab]">Še ni razvrstitve za to skupino.</div>
         )}
