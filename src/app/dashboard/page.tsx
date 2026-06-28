@@ -27,9 +27,6 @@ export default async function DashboardPage({
 
   const firstName = (user.user_metadata?.full_name ?? user.user_metadata?.name ?? 'Navijač').split(' ')[0]
 
-  // Banner: prikaži do 30. junija 2026 23:59 UTC
-  const showGroupScoredBanner = new Date() < new Date('2026-06-30T21:59:00Z')
-
   return (
     <div style={{ minHeight:'100vh', paddingBottom:'calc(env(safe-area-inset-bottom) + 80px)', fontFamily:'var(--font)' }} className="md:pb-0 md:pt-16">
       <Navbar activePath="/dashboard" />
@@ -45,46 +42,6 @@ export default async function DashboardPage({
             Vnesi napovedi za prihajajoče tekme. Napovedi se zaklenejo 15 min pred začetkom.
           </p>
         </div>
-
-        {/* Banner: posebne napovedi točkovane */}
-        {showGroupScoredBanner && (
-          <div style={{
-            margin: '0 16px 14px',
-            padding: '14px 16px',
-            borderRadius: 14,
-            background: 'linear-gradient(135deg, #e6faf8 0%, #d1f5ef 100%)',
-            border: '1.5px solid #a7e8df',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-          }}>
-            <span style={{ fontSize: 22, flexShrink: 0 }}>🏆</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0c4a45', lineHeight: 1.3 }}>
-                Skupinski del je zaključen!
-              </div>
-              <div style={{ fontSize: 12.5, color: '#1d7a72', marginTop: 3, lineHeight: 1.4 }}>
-                Dodelili smo točke za napovedi zmagovalcev skupin.
-              </div>
-            </div>
-            <a
-              href="/dashboard?tab=posebne"
-              style={{
-                flexShrink: 0,
-                padding: '8px 14px',
-                borderRadius: 10,
-                background: '#0f766e',
-                color: '#fff',
-                fontSize: 12.5,
-                fontWeight: 700,
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Preveri točke →
-            </a>
-          </div>
-        )}
 
         {/* Main tab switcher — segmentni kontrol */}
         <div style={{ padding:'0 16px 14px' }}>
