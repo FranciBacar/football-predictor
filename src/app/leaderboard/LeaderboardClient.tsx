@@ -2,6 +2,7 @@
 
 import Leaderboard, { type Player } from '@/components/Leaderboard'
 import { ScoringSummary } from '@/components/GameRules'
+import GroupScoredBanner from '@/components/GroupScoredBanner'
 
 export default function LeaderboardClient({
   tabs,
@@ -13,9 +14,12 @@ export default function LeaderboardClient({
   defaultTab: string
 }) {
   return (
-    <div className="flex flex-col gap-5">
-      <Leaderboard tabs={tabs} rowsByTab={rowsByTab} defaultTab={defaultTab} />
-      <ScoringSummary />
-    </div>
+    <>
+      <GroupScoredBanner />
+      <div className="flex flex-col gap-5">
+        <Leaderboard tabs={tabs} rowsByTab={rowsByTab} defaultTab={defaultTab} />
+        <ScoringSummary />
+      </div>
+    </>
   )
 }
