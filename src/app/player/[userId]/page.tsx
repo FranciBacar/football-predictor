@@ -85,7 +85,7 @@ export default async function PlayerHistoryPage({
   // 3. VSE zaključene tekme (ne samo tiste z napovedmi)
   const { data: finishedMatches } = await admin
     .from('matches')
-    .select('id, home_team, away_team, actual_score_home, actual_score_away, actual_advancing_team, stage, match_time_utc, is_knockout, status')
+    .select('id, home_team, away_team, actual_score_home, actual_score_away, actual_advancing_team, actual_penalty_home, actual_penalty_away, stage, match_time_utc, is_knockout, status')
     .eq('status', 'Finished')
     .order('match_time_utc', { ascending: true })
 
@@ -236,9 +236,9 @@ export default async function PlayerHistoryPage({
                               Rezultat: {m.actual_score_home}:{m.actual_score_away}
                               {hasAdv && ' po 90 min'}
                             </span>
-                            {hasAdv && (
+                            {hasAdv && m.actual_penalty_home != null && (
                               <span style={{ fontSize: 10.5, color: '#c4cacc', fontWeight: 600 }}>
-                                · napreduje: {m.actual_advancing_team}
+                                · penali: {m.actual_penalty_home}:{m.actual_penalty_away} · napreduje: {m.actual_advancing_team}
                               </span>
                             )}
                           </div>
@@ -264,6 +264,9 @@ export default async function PlayerHistoryPage({
                 const advTeamData = m.actual_advancing_team === m.home_team ? homeTeam : awayTeam
                 const advCorrect = predAdv && advCode && predAdv === advCode
                 const stripColor = pts > 0 ? (q.tone === 'hit' ? '#16a34a' : '#0f766e') : '#d1d5db'
+                const penHome: number | null = m.actual_penalty_home ?? null
+                const penAway: number | null = m.actual_penalty_away ?? null
+                const hasPenScore = hasAdv && penHome !== null && penAway !== null
 
                 return (
                   <div key={m.id} style={{
@@ -276,12 +279,14 @@ export default async function PlayerHistoryPage({
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'start' }}>
                       <div>
+                        {/* Ekipi */}
                         <div style={{ fontSize: 13.5, fontWeight: 600, color: '#15201d', marginBottom: 6 }}>
                           <span>{homeTeam.flag} {m.home_team}</span>
                           <span style={{ color: '#c4cacc', margin: '0 6px' }}>vs</span>
                           <span>{awayTeam.flag} {m.away_team}</span>
                         </div>
 
+                        {/* Napoved → Rezultat */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5 }}>
                             <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#b0b8c1' }}>Napoved</span>
@@ -295,27 +300,50 @@ export default async function PlayerHistoryPage({
                             <b style={{ fontSize: 15, fontWeight: 800, color: '#15201d', fontVariantNumeric: 'tabular-nums' }}>
                               {m.actual_score_home} : {m.actual_score_away}
                             </b>
-                            {hasAdv && <span style={{ fontSize: 10, color: '#b0b8c1', fontWeight: 600 }}>po 90 min</span>}
+                            {hasAdv && (
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                                background: '#f3f4f6', color: '#9aa1ab', borderRadius: 4, padding: '1px 5px',
+                              }}>po 90 min</span>
+                            )}
                           </span>
                         </div>
 
+                        {/* Penali blok */}
                         {hasAdv && (
-                          <div style={{ marginTop: 5, fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ color: '#9aa1ab' }}>Po k.s. napreduje:</span>
-                            <b style={{ color: '#374151' }}>{advTeamData.flag} {m.actual_advancing_team}</b>
+                          <div style={{
+                            marginTop: 7, padding: '7px 10px', borderRadius: 10,
+                            background: '#f8f9fa', border: '1px solid #ebeeec',
+                            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                          }}>
+                            <span style={{
+                              fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase',
+                              letterSpacing: '0.06em', color: '#aab0b8',
+                            }}>Po penalih</span>
+                            {hasPenScore && (
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
+                                {penHome}:{penAway}
+                              </span>
+                            )}
+                            <span style={{ color: '#d1d5db', fontSize: 11 }}>·</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+                              {advTeamData.flag} {m.actual_advancing_team} napreduje
+                            </span>
                             {predAdv && (
                               <span style={{
-                                fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999,
+                                fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999,
                                 background: advCorrect ? '#dcfce7' : '#fef3f2',
                                 color: advCorrect ? '#15803d' : '#d92d20',
+                                marginLeft: 2,
                               }}>
-                                {advCorrect ? '✓ bonus' : '✕ zgrešeno'}
+                                {advCorrect ? '✓ +bonus' : '✕ zgrešeno'}
                               </span>
                             )}
                           </div>
                         )}
 
-                        <div style={{ marginTop: 5 }}>
+                        {/* Kakovost napovedi */}
+                        <div style={{ marginTop: 6 }}>
                           <span style={{
                             fontSize: 11, fontWeight: 600,
                             color: q.tone === 'hit' ? '#15803d' : q.tone === 'diff' ? '#0f766e' : '#9aa1ab',
