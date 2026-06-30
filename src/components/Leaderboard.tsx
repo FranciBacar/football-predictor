@@ -39,7 +39,8 @@ const MEDAL = [
   'bg-[linear-gradient(140deg,#ecca9f,#c08a55)] text-[#6e4824]',
 ];
 
-const RANKS_KEY = 'lb_global_ranks_v2';
+// v3: shranjujemo ranke PER TAB (ne samo globalno), da so puščice pravilne
+const RANKS_KEY = 'lb_ranks_v3';
 
 function Avatar({ p }: { p: Player }) {
   if (p.avatarUrl) {
@@ -126,25 +127,26 @@ export default function Leaderboard({
   const [matchOnly, setMatchOnly] = useState(false);
 
   // Sinhrono branje localStorage pred prvim renderjem → ni flash/miganja
-  const [prevRanks] = useState<Record<string, number>>(() => {
+  // Format: { "Globalna": { userId: rank }, "Otroci": { userId: rank }, ... }
+  const [prevRanksByTab] = useState<Record<string, Record<string, number>>>(() => {
     try {
       const stored = localStorage.getItem(RANKS_KEY);
-      return stored ? (JSON.parse(stored) as Record<string, number>) : {};
+      return stored ? (JSON.parse(stored) as Record<string, Record<string, number>>) : {};
     } catch {
       return {};
     }
   });
 
-  // Shrani trenutne globalne ranke ob odhodu s strani
+  // Shrani ranke VSEH tabov ob odhodu s strani
   useEffect(() => {
-    const globalRows = rowsByTab['Globalna'] ?? [];
-    const current: Record<string, number> = {};
-    globalRows.forEach((p, i) => { current[p.id] = i + 1; });
-
+    const current: Record<string, Record<string, number>> = {};
+    for (const [tabName, tabRows] of Object.entries(rowsByTab)) {
+      current[tabName] = {};
+      tabRows.forEach((p, i) => { current[tabName][p.id] = i + 1; });
+    }
     const save = () => {
       try { localStorage.setItem(RANKS_KEY, JSON.stringify(current)); } catch {}
     };
-    // Shrani ko uporabnik zapusti stran ali navigira drugam
     window.addEventListener('beforeunload', save);
     return () => {
       window.removeEventListener('beforeunload', save);
@@ -166,13 +168,6 @@ export default function Leaderboard({
   // Toggle pokaži samo ko VISI imajo matchPoints (ne samo kakšen)
   const tabRows = rowsByTab[tab] ?? [];
   const hasBreakdownData = tabRows.length > 0 && tabRows.every(p => p.matchPoints !== undefined);
-
-  // Global rank map (za current tab)
-  const globalRankMap = useMemo(() => {
-    const m: Record<string, number> = {};
-    (rowsByTab['Globalna'] ?? []).forEach((p, i) => { m[p.id] = i + 1; });
-    return m;
-  }, [rowsByTab]);
 
   return (
     <div className="mx-auto max-w-[680px]">
@@ -244,7 +239,7 @@ export default function Leaderboard({
             p={p}
             rank={i + 1}
             matchOnly={matchOnly}
-            prevRank={prevRanks[p.id]}
+            prevRank={prevRanksByTab[tab]?.[p.id]}
             onClick={(id) => router.push(`/player/${id}`)}
           />
         ))}

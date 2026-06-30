@@ -82,34 +82,28 @@ export default async function PlayerHistoryPage({
     .select('pred_score_home, pred_score_away, pred_advancing_team, earned_points, match_id')
     .eq('user_id', userId)
 
-  const matchIds = (preds ?? []).map((p: any) => p.match_id)
+  // 3. VSE zaključene tekme (ne samo tiste z napovedmi)
+  const { data: finishedMatches } = await admin
+    .from('matches')
+    .select('id, home_team, away_team, actual_score_home, actual_score_away, actual_advancing_team, stage, match_time_utc, is_knockout, status')
+    .eq('status', 'Finished')
+    .order('match_time_utc', { ascending: true })
 
-  // 3. Tekme (samo zaključene)
-  let finishedMatches: any[] = []
-  if (matchIds.length > 0) {
-    const { data: mData } = await admin
-      .from('matches')
-      .select('id, home_team, away_team, actual_score_home, actual_score_away, actual_advancing_team, stage, match_time_utc, is_knockout, status')
-      .in('id', matchIds)
-      .eq('status', 'Finished')
-      .order('match_time_utc', { ascending: true })
-    finishedMatches = mData ?? []
-  }
-
-  // 4. Združi napovedi z zadetki
+  // 4. Združi: tekme z napovedmi (pred = null če napovedi ni)
   const predMap = new Map((preds ?? []).map((p: any) => [p.match_id, p]))
-  const combined = finishedMatches.map(m => ({
+  const combined = (finishedMatches ?? []).map(m => ({
     ...m,
-    pred: predMap.get(m.id) as any,
-  })).filter(m => m.pred)
+    pred: (predMap.get(m.id) ?? null) as any,
+  }))
 
-  // 5. Statistike
-  const totalPoints = combined.reduce((s, m) => s + (m.pred.earned_points ?? 0), 0)
-  const exactCount = combined.filter(m =>
+  // 5. Statistike (samo tekme z napovedmi)
+  const withPred = combined.filter(m => m.pred !== null)
+  const totalPoints = withPred.reduce((s, m) => s + (m.pred.earned_points ?? 0), 0)
+  const exactCount = withPred.filter(m =>
     m.pred.pred_score_home === m.actual_score_home &&
     m.pred.pred_score_away === m.actual_score_away
   ).length
-  const scoredCount = combined.filter(m => (m.pred.earned_points ?? 0) > 0).length
+  const scoredCount = withPred.filter(m => (m.pred.earned_points ?? 0) > 0).length
 
   // 6. Razvrsti po fazah
   const byStage: Record<string, typeof combined> = {}
@@ -215,28 +209,61 @@ export default async function PlayerHistoryPage({
             }}>
               {byStage[stageLabel].map((m, idx) => {
                 const pred = m.pred
+                const homeTeam = getTeam(m.home_team)
+                const awayTeam = getTeam(m.away_team)
+                const isLast = idx === byStage[stageLabel].length - 1
+                const hasAdv = !!m.actual_advancing_team
+
+                // Brez napovedi — prikaži tekmo a brez točk
+                if (!pred) {
+                  return (
+                    <div key={m.id} style={{
+                      borderBottom: isLast ? 'none' : '1px solid #ebeeec',
+                      padding: '13px 16px 13px 20px',
+                      position: 'relative',
+                      background: '#fafbfb',
+                    }}>
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#e5e7eb' }} />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, color: '#9aa1ab', marginBottom: 4 }}>
+                            <span>{homeTeam.flag} {m.home_team}</span>
+                            <span style={{ color: '#d1d5db', margin: '0 6px' }}>vs</span>
+                            <span>{awayTeam.flag} {m.away_team}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 10.5, color: '#c4cacc', fontWeight: 600 }}>
+                              Rezultat: {m.actual_score_home}:{m.actual_score_away}
+                              {hasAdv && ' po 90 min'}
+                            </span>
+                            {hasAdv && (
+                              <span style={{ fontSize: 10.5, color: '#c4cacc', fontWeight: 600 }}>
+                                · napreduje: {m.actual_advancing_team}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ marginTop: 3, fontSize: 11, color: '#d1d5db', fontWeight: 600 }}>
+                            ni napovedi
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', color: '#d1d5db', fontSize: 13, fontWeight: 700 }}>—</div>
+                      </div>
+                    </div>
+                  )
+                }
+
                 const q = quality(
                   pred.pred_score_home, pred.pred_score_away,
                   m.actual_score_home, m.actual_score_away
                 )
                 const pts = pred.earned_points ?? 0
-                const homeTeam = getTeam(m.home_team)
-                const awayTeam = getTeam(m.away_team)
-                const isLast = idx === byStage[stageLabel].length - 1
-
-                // Advancing team check
-                const hasAdv = !!m.actual_advancing_team
                 const predAdv = pred.pred_advancing_team
                 const homeCode = m.home_team.slice(0, 3).toUpperCase()
                 const awayCode = m.away_team.slice(0, 3).toUpperCase()
                 const advCode = m.actual_advancing_team === m.home_team ? homeCode : awayCode
                 const advTeamData = m.actual_advancing_team === m.home_team ? homeTeam : awayTeam
                 const advCorrect = predAdv && advCode && predAdv === advCode
-
-                // Colors
-                const stripColor = pts > 0
-                  ? (q.tone === 'hit' ? '#16a34a' : '#0f766e')
-                  : '#d1d5db'
+                const stripColor = pts > 0 ? (q.tone === 'hit' ? '#16a34a' : '#0f766e') : '#d1d5db'
 
                 return (
                   <div key={m.id} style={{
@@ -245,37 +272,25 @@ export default async function PlayerHistoryPage({
                     position: 'relative',
                     background: pts > 0 ? '#fff' : '#fafbfb',
                   }}>
-                    {/* Leva barvna črta */}
-                    <div style={{
-                      position: 'absolute', left: 0, top: 0, bottom: 0,
-                      width: 3, background: stripColor, borderRadius: '0 0 0 0',
-                    }} />
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: stripColor }} />
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'start' }}>
                       <div>
-                        {/* Ekipi */}
                         <div style={{ fontSize: 13.5, fontWeight: 600, color: '#15201d', marginBottom: 6 }}>
                           <span>{homeTeam.flag} {m.home_team}</span>
                           <span style={{ color: '#c4cacc', margin: '0 6px' }}>vs</span>
                           <span>{awayTeam.flag} {m.away_team}</span>
                         </div>
 
-                        {/* Napoved vs Rezultat */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                          <span style={{
-                            fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5,
-                          }}>
+                          <span style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5 }}>
                             <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#b0b8c1' }}>Napoved</span>
                             <b style={{ fontSize: 15, fontWeight: 800, color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
                               {pred.pred_score_home} : {pred.pred_score_away}
                             </b>
                           </span>
-
                           <span style={{ color: '#d1d5db', fontSize: 12 }}>→</span>
-
-                          <span style={{
-                            fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5,
-                          }}>
+                          <span style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5 }}>
                             <span style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#b0b8c1' }}>Rezultat</span>
                             <b style={{ fontSize: 15, fontWeight: 800, color: '#15201d', fontVariantNumeric: 'tabular-nums' }}>
                               {m.actual_score_home} : {m.actual_score_away}
@@ -284,15 +299,13 @@ export default async function PlayerHistoryPage({
                           </span>
                         </div>
 
-                        {/* Advancing team (penalty matches) */}
                         {hasAdv && (
                           <div style={{ marginTop: 5, fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ color: '#9aa1ab' }}>Po k.s. napreduje:</span>
                             <b style={{ color: '#374151' }}>{advTeamData.flag} {m.actual_advancing_team}</b>
                             {predAdv && (
                               <span style={{
-                                fontSize: 10, fontWeight: 700, padding: '1px 6px',
-                                borderRadius: 999,
+                                fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999,
                                 background: advCorrect ? '#dcfce7' : '#fef3f2',
                                 color: advCorrect ? '#15803d' : '#d92d20',
                               }}>
@@ -302,7 +315,6 @@ export default async function PlayerHistoryPage({
                           </div>
                         )}
 
-                        {/* Kakovost */}
                         <div style={{ marginTop: 5 }}>
                           <span style={{
                             fontSize: 11, fontWeight: 600,
@@ -313,7 +325,6 @@ export default async function PlayerHistoryPage({
                         </div>
                       </div>
 
-                      {/* Točke */}
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{
                           fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
