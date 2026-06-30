@@ -23,7 +23,9 @@ export type Match = {
   isKnockout: boolean;
   status: 'open' | 'locked' | 'finished';
   actual?: { home: number; away: number } | null;
-  actualAdvancingTeam?: string | null;  // ekipa ki napreduje po k.s. (polno slovensko ime)
+  actualAdvancingTeam?: string | null;  // ekipa ki napreduje po penaltih
+  actualPenaltyHome?: number | null;    // goli na penaltih (home)
+  actualPenaltyAway?: number | null;    // goli na penaltih (away)
   earned?: number | null;
   hint?: MatchHintData | null;
 };
@@ -104,7 +106,14 @@ export default function MatchCard({ match, pred, saved, onChange, onSave }: {
               <Stepper editable={open} value={pred.away} readValue={finished ? match.actual?.away : saved?.away ?? pred.away} onChange={(v) => onChange({ ...pred, away: v })} />
             </div>
             {finished && match.actualAdvancingTeam && (
-              <span className="rounded-full bg-[#eef1f0] px-[7px] py-[2px] text-[9.5px] font-bold tracking-wide text-[#6b7280]">po 90 min</span>
+              <div className="flex flex-col items-center gap-[3px]">
+                <span className="rounded-full bg-[#eef1f0] px-[7px] py-[2px] text-[9.5px] font-bold tracking-wide text-[#6b7280]">po 90 min</span>
+                {match.actualPenaltyHome !== null && match.actualPenaltyHome !== undefined && (
+                  <span className="text-[11px] font-bold text-[#9aa1ab] tabular-nums">
+                    pen. {match.actualPenaltyHome}:{match.actualPenaltyAway}
+                  </span>
+                )}
+              </div>
             )}
           </div>
           <Team t={match.away} />
@@ -126,10 +135,10 @@ export default function MatchCard({ match, pred, saved, onChange, onSave }: {
 
         {finished && (
           <div className="mt-3.5 flex flex-col gap-[8px] rounded-[13px] border border-[#ebeeec] bg-[#fafbfb] px-3.5 py-3">
-            {/* Penalty / ET: kdo napreduje */}
+            {/* Kazenski streli: kdo napreduje */}
             {match.actualAdvancingTeam && advTeam && (
               <div className="flex items-center justify-between border-b border-[#ebeeec] pb-[8px] text-[11.5px]">
-                <span className="text-[#9aa1ab]">Po k.s. napreduje</span>
+                <span className="text-[#9aa1ab]">Kazenski streli — napreduje</span>
                 <div className="flex items-center gap-[7px]">
                   <span className="font-bold text-[#15201d]">{advTeam.flag} {match.actualAdvancingTeam}</span>
                   {userAdvTeam && (

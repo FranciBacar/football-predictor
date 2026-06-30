@@ -180,8 +180,10 @@ export async function GET(request: Request) {
       const finalScoreHome = scoresReversed ? scoreAway : scoreHome
       const finalScoreAway = scoresReversed ? scoreHome : scoreAway
 
-      // 4. Določi advancing_team za izločilne boje (penalti)
+      // 4. Določi advancing_team in penalty score za izločilne boje
       let actualAdvancingTeam: string | null = null
+      let actualPenaltyHome: number | null = null
+      let actualPenaltyAway: number | null = null
       if (ourMatch.is_knockout && finalScoreHome === finalScoreAway) {
         const penHome: number | null = apiMatch.score?.penalties?.home ?? null
         const penAway: number | null = apiMatch.score?.penalties?.away ?? null
@@ -190,6 +192,8 @@ export async function GET(request: Request) {
           const finalPenHome = scoresReversed ? penAway : penHome
           const finalPenAway = scoresReversed ? penHome : penAway
           actualAdvancingTeam = finalPenHome > finalPenAway ? ourMatch.home_team : ourMatch.away_team
+          actualPenaltyHome = finalPenHome
+          actualPenaltyAway = finalPenAway
         }
       }
 
@@ -211,6 +215,8 @@ export async function GET(request: Request) {
           actual_score_home: finalScoreHome,
           actual_score_away: finalScoreAway,
           actual_advancing_team: actualAdvancingTeam,
+          actual_penalty_home: actualPenaltyHome,
+          actual_penalty_away: actualPenaltyAway,
           updated_at: new Date().toISOString(),
         })
         .eq('id', ourMatch.id)

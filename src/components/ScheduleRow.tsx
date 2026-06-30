@@ -30,7 +30,9 @@ export type Match = {
   isKnockout: boolean;
   status: MatchStatus;
   actual?: Score | null;       // dejanski rezultat (finished)
-  actualAdvancingTeam?: string | null;  // ekipa ki napreduje po k.s.
+  actualAdvancingTeam?: string | null;  // ekipa ki napreduje po penaltih
+  actualPenaltyHome?: number | null;    // penalty score (home)
+  actualPenaltyAway?: number | null;    // penalty score (away)
   earned?: number | null;      // dosežene točke (finished)
   hint?: MatchHintData | null; // podatki algoritma (open, pred zaklepom)
 };
@@ -145,7 +147,12 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
             </div>
             {match.actualAdvancingTeam && advTeam && (
               <div className="flex items-center justify-between text-[10.5px]">
-                <span className="text-[#9aa1ab]">Po k.s. napreduje: <b className="text-[#374151]">{advTeam.flag} {match.actualAdvancingTeam}</b></span>
+                <span className="text-[#9aa1ab]">
+                  {match.actualPenaltyHome !== null && match.actualPenaltyHome !== undefined
+                    ? `Pen. ${match.actualPenaltyHome}:${match.actualPenaltyAway} — napreduje: `
+                    : 'Kazenski streli — napreduje: '}
+                  <b className="text-[#374151]">{advTeam.flag} {match.actualAdvancingTeam}</b>
+                </span>
                 {userAdvTeam && (
                   <span className={`font-bold ${advCorrect ? 'text-[#15803d]' : 'text-[#d92d20]'}`}>
                     {advCorrect ? `✓ ${userAdvTeam.flag} +bonus` : `✕ ${userAdvTeam.flag}`}

@@ -24,6 +24,8 @@ type Match = {
   actual_score_home: number | null
   actual_score_away: number | null
   actual_advancing_team: string | null
+  actual_penalty_home: number | null
+  actual_penalty_away: number | null
 }
 
 type Prediction = {
@@ -106,6 +108,8 @@ function toScheduleMatch(
         ? { home: m.actual_score_home, away: m.actual_score_away }
         : null,
     actualAdvancingTeam: m.actual_advancing_team ?? null,
+    actualPenaltyHome: m.actual_penalty_home ?? null,
+    actualPenaltyAway: m.actual_penalty_away ?? null,
     earned: savedPred?.earned_points ?? null,
     hint: hintData,
   }
@@ -131,6 +135,8 @@ function toCardMatch(m: Match, savedPred: Prediction | null, hint: any): CardMat
         ? { home: m.actual_score_home, away: m.actual_score_away }
         : null,
     actualAdvancingTeam: m.actual_advancing_team ?? null,
+    actualPenaltyHome: m.actual_penalty_home ?? null,
+    actualPenaltyAway: m.actual_penalty_away ?? null,
     earned: savedPred?.earned_points ?? null,
     hint: SHOW_HINTS && status === 'open' && hint
       ? hintFromSupabase(hint, m.home_team, m.away_team) : null,
