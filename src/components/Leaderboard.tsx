@@ -39,7 +39,7 @@ const MEDAL = [
   'bg-[linear-gradient(140deg,#ecca9f,#c08a55)] text-[#6e4824]',
 ];
 
-const RANKS_KEY = 'lb_global_ranks_v1';
+const RANKS_KEY = 'lb_global_ranks_v2';
 
 function Avatar({ p }: { p: Player }) {
   if (p.avatarUrl) {
@@ -53,12 +53,12 @@ function Avatar({ p }: { p: Player }) {
 }
 
 function RankArrow({ delta }: { delta: number }) {
-  if (delta === 0) return null;
+  // Vedno renderamo span, da ni layout shift — nevidno ko je delta 0
   return (
     <span style={{
       fontSize: 9, fontWeight: 800, lineHeight: 1,
+      visibility: delta === 0 ? 'hidden' : 'visible',
       color: delta > 0 ? '#16a34a' : '#dc2626',
-      marginLeft: 2,
     }}>
       {delta > 0 ? '▲' : '▼'}
     </span>
@@ -124,24 +124,33 @@ export default function Leaderboard({
   const router = useRouter();
   const [tab, setTab] = useState(defaultTab ?? tabs[0]);
   const [matchOnly, setMatchOnly] = useState(false);
-  const [prevRanks, setPrevRanks] = useState<Record<string, number>>({});
 
-  // Rank tracking: read previous ranks, save current after 3s
-  useEffect(() => {
+  // Sinhrono branje localStorage pred prvim renderjem → ni flash/miganja
+  const [prevRanks] = useState<Record<string, number>>(() => {
     try {
       const stored = localStorage.getItem(RANKS_KEY);
-      if (stored) setPrevRanks(JSON.parse(stored));
-    } catch {}
+      return stored ? (JSON.parse(stored) as Record<string, number>) : {};
+    } catch {
+      return {};
+    }
+  });
 
+  // Shrani trenutne globalne ranke ob odhodu s strani
+  useEffect(() => {
     const globalRows = rowsByTab['Globalna'] ?? [];
     const current: Record<string, number> = {};
     globalRows.forEach((p, i) => { current[p.id] = i + 1; });
 
-    const timer = setTimeout(() => {
+    const save = () => {
       try { localStorage.setItem(RANKS_KEY, JSON.stringify(current)); } catch {}
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, []);
+    };
+    // Shrani ko uporabnik zapusti stran ali navigira drugam
+    window.addEventListener('beforeunload', save);
+    return () => {
+      window.removeEventListener('beforeunload', save);
+      save(); // shrani ob unmount (navigacija znotraj app)
+    };
+  }, [rowsByTab]);
 
   const rows = useMemo(() => {
     const base = rowsByTab[tab] ?? [];

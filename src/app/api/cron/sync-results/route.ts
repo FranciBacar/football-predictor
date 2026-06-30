@@ -112,7 +112,7 @@ export async function GET(request: Request) {
     // ki so v bazi še Upcoming čeprav so bile že odigrane (+ Finished za VAR korekcije)
     const { data: ourMatches, error: dbError } = await supabase
       .from('matches')
-      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away')
+      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away, actual_penalty_home')
 
     if (dbError) throw new Error(dbError.message)
     if (!ourMatches || ourMatches.length === 0) {
@@ -130,16 +130,29 @@ export async function GET(request: Request) {
         continue
       }
 
-      // football-data.org: za penalty tekme score.fullTime nepravilno sešteje
-      // regularne + penalty gole (npr. 1+3=4, 1+4=5 za 1:1 tekmo s 3-4 penalti).
-      // score.extraTime = stanje po ET (kumulativno, brez penaltov) — to vedno hočemo.
-      // Za regularne tekme je score.extraTime = null → fallback na score.fullTime.
-      const etHome = apiMatch.score?.extraTime?.home
-      const etAway = apiMatch.score?.extraTime?.away
+      // football-data.org score.fullTime za PENALTY_SHOOTOUT tekme:
+      //   fullTime = 90-min goli + ET goli + penalty goli (kumulativno!)
+      //   Npr. Nemčija 1:1 Paragvaj, pen. 3:4 → fullTime = {4, 5}
+      //   Pravi 90+ET rezultat = fullTime - penalties = 4-3=1, 5-4=1 ✓
+      // Za REGULAR in EXTRA_TIME tekme je fullTime = pravi končni rezultat.
       const ftHome: number | null = apiMatch.score?.fullTime?.home ?? null
       const ftAway: number | null = apiMatch.score?.fullTime?.away ?? null
-      const scoreHome: number | null = (etHome !== null && etHome !== undefined) ? etHome : ftHome
-      const scoreAway: number | null = (etAway !== null && etAway !== undefined) ? etAway : ftAway
+      let scoreHome: number | null = ftHome
+      let scoreAway: number | null = ftAway
+
+      const duration: string = apiMatch.score?.duration ?? 'REGULAR'
+      if (duration === 'PENALTY_SHOOTOUT' && ftHome !== null && ftAway !== null) {
+        const penHome: number = apiMatch.score?.penalties?.home ?? 0
+        const penAway: number = apiMatch.score?.penalties?.away ?? 0
+        const computedHome = ftHome - penHome
+        const computedAway = ftAway - penAway
+        // Sanity: rezultat mora biti >= 0 in remi (sicer bi šlo v podaljšek, ne penalte)
+        if (computedHome >= 0 && computedAway >= 0 && computedHome === computedAway) {
+          scoreHome = computedHome
+          scoreAway = computedAway
+        }
+        // Else: fullTime je verjetno že pravi 90-min score → pustimo kot je
+      }
 
       if (scoreHome === null || scoreAway === null) {
         results.nullScore.push(`${apiHome} vs ${apiAway}`)
@@ -197,11 +210,13 @@ export async function GET(request: Request) {
         }
       }
 
-      // 5. Preskoči če je score že enak (brez nepotrebnih updateov)
+      // 5. Preskoči če je score že enak IN penalty stolpci so že izpolnjeni
+      const penaltyMissing = ourMatch.is_knockout && actualPenaltyHome !== null && ourMatch.actual_penalty_home === null
       if (
         ourMatch.status === 'Finished' &&
         ourMatch.actual_score_home === finalScoreHome &&
-        ourMatch.actual_score_away === finalScoreAway
+        ourMatch.actual_score_away === finalScoreAway &&
+        !penaltyMissing
       ) {
         results.skipped++
         continue
