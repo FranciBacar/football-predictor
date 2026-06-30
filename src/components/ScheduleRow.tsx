@@ -107,6 +107,7 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
     </div>
   );
 
+  const hasPenalty = !!(finished && match.actualAdvancingTeam);
   const q = finished && saved && match.actual ? quality(saved, match.actual) : null;
   const toneCls = q?.tone === 'hit' ? 'text-[#15803d]' : q?.tone === 'diff' ? 'text-[#0f766e]' : 'text-[#9aa1ab]';
 
@@ -118,6 +119,12 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
   const userAdvCode = saved?.advancing;
   const userAdvTeam = userAdvCode === match.home.code ? match.home : userAdvCode === match.away.code ? match.away : null;
   const advCorrect = !!(userAdvCode && advCode && userAdvCode === advCode);
+
+  // Za prikaz skupnega (končnega) rezultata vključno s penalti
+  const totalHome = hasPenalty && match.actual && match.actualPenaltyHome != null
+    ? match.actual.home + match.actualPenaltyHome : null;
+  const totalAway = hasPenalty && match.actual && match.actualPenaltyAway != null
+    ? match.actual.away + match.actualPenaltyAway : null;
 
   return (
     <button type="button" onClick={onOpen}
@@ -135,23 +142,34 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
       <div className="flex min-w-0 flex-col gap-1.5">
         <TeamLine t={match.home} score={hs} win={homeWin} />
         <TeamLine t={match.away} score={as} win={awayWin} />
+
+        {/* Za penalty tekme: oznaka "po 90 min" + končni rezultat s penalti */}
+        {hasPenalty && (
+          <div className="mt-0.5 flex items-center justify-between">
+            <span className="rounded-full bg-[#eef1f0] px-[7px] py-[2px] text-[9px] font-bold uppercase tracking-wide text-[#aab0b8]">
+              po 90 min
+            </span>
+            {totalHome !== null && totalAway !== null && (
+              <span className="text-[10px] font-semibold text-[#9aa1ab] tabular-nums">
+                skupaj: <b className="text-[#374151]">{totalHome}:{totalAway}</b>
+              </span>
+            )}
+          </div>
+        )}
+
         {finished && (
           <div className="mt-1.5 flex flex-col gap-1.5 border-t border-dashed border-[#dde3e1] pt-2">
-            <div className="flex items-center justify-between gap-2.5">
-              <span className="flex items-center gap-1.5 whitespace-nowrap text-[11.5px] text-[#6b7280]">
-                <span className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#9aa1ab]">Napoved</span>
-                <b className="text-[13px] font-bold tabular-nums text-[#15201d]">{saved ? `${saved.home} : ${saved.away}` : '—'}</b>
-                {match.actualAdvancingTeam && <span className="text-[9.5px] font-semibold text-[#c4cacc]">po 90 min</span>}
-              </span>
-              {q && <span className={`whitespace-nowrap text-[11px] font-bold ${toneCls}`}>{q.text}</span>}
-            </div>
-            {match.actualAdvancingTeam && advTeam && (
+            {/* Kazenski streli: kdo napreduje + bonus */}
+            {hasPenalty && advTeam && (
               <div className="flex items-center justify-between text-[10.5px]">
-                <span className="text-[#9aa1ab]">
-                  {match.actualPenaltyHome !== null && match.actualPenaltyHome !== undefined
-                    ? `Pen. ${match.actualPenaltyHome}:${match.actualPenaltyAway} — napreduje: `
-                    : 'Kazenski streli — napreduje: '}
-                  <b className="text-[#374151]">{advTeam.flag} {match.actualAdvancingTeam}</b>
+                <span className="flex items-center gap-1 text-[#6b7280]">
+                  <span className="font-semibold text-[#374151]">{advTeam.flag} {match.actualAdvancingTeam}</span>
+                  <span className="text-[#c4cacc]">napreduje</span>
+                  {match.actualPenaltyHome != null && (
+                    <span className="rounded bg-[#f4f7f6] px-[5px] py-[1px] text-[9.5px] font-bold tabular-nums text-[#6b7280]">
+                      pen. {match.actualPenaltyHome}:{match.actualPenaltyAway}
+                    </span>
+                  )}
                 </span>
                 {userAdvTeam && (
                   <span className={`font-bold ${advCorrect ? 'text-[#15803d]' : 'text-[#d92d20]'}`}>
@@ -160,6 +178,15 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
                 )}
               </div>
             )}
+            {/* Napoved + kakovost */}
+            <div className="flex items-center justify-between gap-2.5">
+              <span className="flex items-center gap-1.5 whitespace-nowrap text-[11.5px] text-[#6b7280]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#9aa1ab]">Napoved</span>
+                <b className="text-[13px] font-bold tabular-nums text-[#15201d]">{saved ? `${saved.home} : ${saved.away}` : '—'}</b>
+                {hasPenalty && <span className="text-[9.5px] font-semibold text-[#c4cacc]">po 90 min</span>}
+              </span>
+              {q && <span className={`whitespace-nowrap text-[11px] font-bold ${toneCls}`}>{q.text}</span>}
+            </div>
           </div>
         )}
       </div>

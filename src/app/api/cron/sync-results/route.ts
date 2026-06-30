@@ -130,28 +130,29 @@ export async function GET(request: Request) {
         continue
       }
 
-      // football-data.org score.fullTime za PENALTY_SHOOTOUT tekme:
-      //   fullTime = 90-min goli + ET goli + penalty goli (kumulativno!)
-      //   Npr. Nemčija 1:1 Paragvaj, pen. 3:4 → fullTime = {4, 5}
-      //   Pravi 90+ET rezultat = fullTime - penalties = 4-3=1, 5-4=1 ✓
-      // Za REGULAR in EXTRA_TIME tekme je fullTime = pravi končni rezultat.
+      // football-data.org vključi penalty gole v score.fullTime (kumulativno).
+      // Npr. Nemčija 1:1 po 90 min, pen. 3:4 → fullTime = {4, 5}.
+      // 90-min rezultat = fullTime − penalties = {4−3, 5−4} = {1, 1}.
+      //
+      // NE zaupamo score.duration (API vrača različne vrednosti) — namesto tega
+      // preverimo ali score.penalties sploh obstaja. Če da, poskusimo odšteti.
+      // Sanity check: rezultat mora biti >= 0 in remi (sicer ni šlo v penalte).
       const ftHome: number | null = apiMatch.score?.fullTime?.home ?? null
       const ftAway: number | null = apiMatch.score?.fullTime?.away ?? null
       let scoreHome: number | null = ftHome
       let scoreAway: number | null = ftAway
 
-      const duration: string = apiMatch.score?.duration ?? 'REGULAR'
-      if (duration === 'PENALTY_SHOOTOUT' && ftHome !== null && ftAway !== null) {
-        const penHome: number = apiMatch.score?.penalties?.home ?? 0
-        const penAway: number = apiMatch.score?.penalties?.away ?? 0
-        const computedHome = ftHome - penHome
-        const computedAway = ftAway - penAway
-        // Sanity: rezultat mora biti >= 0 in remi (sicer bi šlo v podaljšek, ne penalte)
-        if (computedHome >= 0 && computedAway >= 0 && computedHome === computedAway) {
-          scoreHome = computedHome
-          scoreAway = computedAway
+      const penDataHome: number | null = apiMatch.score?.penalties?.home ?? null
+      const penDataAway: number | null = apiMatch.score?.penalties?.away ?? null
+      if (penDataHome !== null && penDataAway !== null && ftHome !== null && ftAway !== null) {
+        const computed90Home = ftHome - penDataHome
+        const computed90Away = ftAway - penDataAway
+        // Veljaven 90-min score: mora biti >= 0 in remi (tekma ni šla v penalte, če ni bil remi)
+        if (computed90Home >= 0 && computed90Away >= 0 && computed90Home === computed90Away) {
+          scoreHome = computed90Home
+          scoreAway = computed90Away
         }
-        // Else: fullTime je verjetno že pravi 90-min score → pustimo kot je
+        // Else: fullTime je verjetno že pravi 90-min score (API ga ni sešteval) → pustimo
       }
 
       if (scoreHome === null || scoreAway === null) {
