@@ -73,7 +73,8 @@ function Row({
 }) {
   const displayPoints = matchOnly ? (p.matchPoints ?? p.points) : p.points;
   const showBreakdown = !matchOnly && p.matchPoints !== undefined && p.specialPoints !== undefined;
-  const rankDelta = prevRank !== undefined ? prevRank - rank : 0;
+  // Puščice samo v normalnem pogledu (ne ko je matchOnly, ker se sort red spremeni)
+  const rankDelta = (!matchOnly && prevRank !== undefined) ? prevRank - rank : 0;
 
   return (
     <div
