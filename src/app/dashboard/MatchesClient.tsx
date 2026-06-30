@@ -105,6 +105,7 @@ function toScheduleMatch(
       m.actual_score_home !== null && m.actual_score_away !== null
         ? { home: m.actual_score_home, away: m.actual_score_away }
         : null,
+    actualAdvancingTeam: m.actual_advancing_team ?? null,
     earned: savedPred?.earned_points ?? null,
     hint: hintData,
   }
@@ -129,6 +130,7 @@ function toCardMatch(m: Match, savedPred: Prediction | null, hint: any): CardMat
       m.actual_score_home !== null && m.actual_score_away !== null
         ? { home: m.actual_score_home, away: m.actual_score_away }
         : null,
+    actualAdvancingTeam: m.actual_advancing_team ?? null,
     earned: savedPred?.earned_points ?? null,
     hint: SHOW_HINTS && status === 'open' && hint
       ? hintFromSupabase(hint, m.home_team, m.away_team) : null,

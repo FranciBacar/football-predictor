@@ -23,6 +23,7 @@ export type Match = {
   isKnockout: boolean;
   status: 'open' | 'locked' | 'finished';
   actual?: { home: number; away: number } | null;
+  actualAdvancingTeam?: string | null;  // ekipa ki napreduje po k.s. (polno slovensko ime)
   earned?: number | null;
   hint?: MatchHintData | null;
 };
@@ -68,6 +69,16 @@ export default function MatchCard({ match, pred, saved, onChange, onSave }: {
   const dirty = !saved || saved.home !== pred.home || saved.away !== pred.away || saved.advancing !== pred.advancing;
   const canSave = open && dirty && (!needsAdvancing || !!pred.advancing);
 
+  // Knockout advancing team info (za finished stanje)
+  const advTeam = match.actualAdvancingTeam === match.home.name ? match.home
+    : match.actualAdvancingTeam === match.away.name ? match.away : null;
+  const advCode = match.actualAdvancingTeam === match.home.name ? match.home.code
+    : match.actualAdvancingTeam === match.away.name ? match.away.code : null;
+  const userAdvCode = saved?.advancing;
+  const userAdvTeam = userAdvCode === match.home.code ? match.home
+    : userAdvCode === match.away.code ? match.away : null;
+  const advancingCorrect = !!(userAdvCode && advCode && userAdvCode === advCode);
+
   const badge = open
     ? { c: 'bg-[#eaf6f0] text-[#15803d]', d: 'bg-[#15803d]', t: 'Odprto' }
     : locked
@@ -86,10 +97,15 @@ export default function MatchCard({ match, pred, saved, onChange, onSave }: {
       <div className="px-4 pb-4 pt-[18px]">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <Team t={match.home} />
-          <div className="flex items-center gap-[9px]">
-            <Stepper editable={open} value={pred.home} readValue={finished ? match.actual?.home : saved?.home ?? pred.home} onChange={(v) => onChange({ ...pred, home: v })} />
-            <span className="text-[22px] font-bold text-[#cfd5d3]">:</span>
-            <Stepper editable={open} value={pred.away} readValue={finished ? match.actual?.away : saved?.away ?? pred.away} onChange={(v) => onChange({ ...pred, away: v })} />
+          <div className="flex flex-col items-center gap-[6px]">
+            <div className="flex items-center gap-[9px]">
+              <Stepper editable={open} value={pred.home} readValue={finished ? match.actual?.home : saved?.home ?? pred.home} onChange={(v) => onChange({ ...pred, home: v })} />
+              <span className="text-[22px] font-bold text-[#cfd5d3]">:</span>
+              <Stepper editable={open} value={pred.away} readValue={finished ? match.actual?.away : saved?.away ?? pred.away} onChange={(v) => onChange({ ...pred, away: v })} />
+            </div>
+            {finished && match.actualAdvancingTeam && (
+              <span className="rounded-full bg-[#eef1f0] px-[7px] py-[2px] text-[9.5px] font-bold tracking-wide text-[#6b7280]">po 90 min</span>
+            )}
           </div>
           <Team t={match.away} />
         </div>
@@ -109,10 +125,29 @@ export default function MatchCard({ match, pred, saved, onChange, onSave }: {
         {open && match.hint && <div className="mt-3.5"><MatchHint data={match.hint} /></div>}
 
         {finished && (
-          <div className="mt-3.5 flex items-center justify-between gap-3 rounded-[13px] border border-[#ebeeec] bg-[#fafbfb] px-3.5 py-3">
-            <div className="whitespace-nowrap text-[12px] text-[#6b7280]">Tvoja napoved <b className="ml-1.5 text-[14.5px] font-bold tabular-nums text-[#15201d]">{saved?.home ?? '–'} : {saved?.away ?? '–'}</b></div>
-            <div className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-bold ${match.earned === 0 ? 'bg-[#eef1f0] text-[#9aa1ab]' : 'bg-[#e9f7f5] text-[#0f766e]'}`}>
-              {match.earned === 0 ? '0 točk' : `+${match.earned} ${ptsWord(match.earned ?? 0)}`}
+          <div className="mt-3.5 flex flex-col gap-[8px] rounded-[13px] border border-[#ebeeec] bg-[#fafbfb] px-3.5 py-3">
+            {/* Penalty / ET: kdo napreduje */}
+            {match.actualAdvancingTeam && advTeam && (
+              <div className="flex items-center justify-between border-b border-[#ebeeec] pb-[8px] text-[11.5px]">
+                <span className="text-[#9aa1ab]">Po k.s. napreduje</span>
+                <div className="flex items-center gap-[7px]">
+                  <span className="font-bold text-[#15201d]">{advTeam.flag} {match.actualAdvancingTeam}</span>
+                  {userAdvTeam && (
+                    <span className={`rounded-full px-[7px] py-[2px] text-[10px] font-bold ${advancingCorrect ? 'bg-[#dcfce7] text-[#15803d]' : 'bg-[#fef3f2] text-[#d92d20]'}`}>
+                      {advancingCorrect ? '✓ +bonus' : `✕ ${userAdvTeam.flag}`}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[12px] text-[#6b7280]">
+                Tvoja napoved{' '}
+                <b className="ml-1 text-[14.5px] font-bold tabular-nums text-[#15201d]">{saved?.home ?? '–'} : {saved?.away ?? '–'}</b>
+              </div>
+              <div className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-bold ${(match.earned ?? 0) === 0 ? 'bg-[#eef1f0] text-[#9aa1ab]' : 'bg-[#e9f7f5] text-[#0f766e]'}`}>
+                {(match.earned ?? 0) === 0 ? '0 točk' : `+${match.earned} ${ptsWord(match.earned ?? 0)}`}
+              </div>
             </div>
           </div>
         )}

@@ -30,6 +30,7 @@ export type Match = {
   isKnockout: boolean;
   status: MatchStatus;
   actual?: Score | null;       // dejanski rezultat (finished)
+  actualAdvancingTeam?: string | null;  // ekipa ki napreduje po k.s.
   earned?: number | null;      // dosežene točke (finished)
   hint?: MatchHintData | null; // podatki algoritma (open, pred zaklepom)
 };
@@ -107,6 +108,15 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
   const q = finished && saved && match.actual ? quality(saved, match.actual) : null;
   const toneCls = q?.tone === 'hit' ? 'text-[#15803d]' : q?.tone === 'diff' ? 'text-[#0f766e]' : 'text-[#9aa1ab]';
 
+  // Knockout advancing team
+  const advTeam = match.actualAdvancingTeam === match.home.name ? match.home
+    : match.actualAdvancingTeam === match.away.name ? match.away : null;
+  const advCode = match.actualAdvancingTeam === match.home.name ? match.home.code
+    : match.actualAdvancingTeam === match.away.name ? match.away.code : null;
+  const userAdvCode = saved?.advancing;
+  const userAdvTeam = userAdvCode === match.home.code ? match.home : userAdvCode === match.away.code ? match.away : null;
+  const advCorrect = !!(userAdvCode && advCode && userAdvCode === advCode);
+
   return (
     <button type="button" onClick={onOpen}
       className={`relative grid w-full grid-cols-[52px_1fr_auto] items-center gap-3 overflow-hidden rounded-2xl border px-3.5 py-3 text-left shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition active:scale-[0.992] ${
@@ -124,12 +134,25 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
         <TeamLine t={match.home} score={hs} win={homeWin} />
         <TeamLine t={match.away} score={as} win={awayWin} />
         {finished && (
-          <div className="mt-1.5 flex items-center justify-between gap-2.5 border-t border-dashed border-[#dde3e1] pt-2">
-            <span className="flex items-center gap-1.5 whitespace-nowrap text-[11.5px] text-[#6b7280]">
-              <span className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#9aa1ab]">Napoved</span>
-              <b className="text-[13px] font-bold tabular-nums text-[#15201d]">{saved ? `${saved.home} : ${saved.away}` : '—'}</b>
-            </span>
-            {q && <span className={`whitespace-nowrap text-[11px] font-bold ${toneCls}`}>{q.text}</span>}
+          <div className="mt-1.5 flex flex-col gap-1.5 border-t border-dashed border-[#dde3e1] pt-2">
+            <div className="flex items-center justify-between gap-2.5">
+              <span className="flex items-center gap-1.5 whitespace-nowrap text-[11.5px] text-[#6b7280]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#9aa1ab]">Napoved</span>
+                <b className="text-[13px] font-bold tabular-nums text-[#15201d]">{saved ? `${saved.home} : ${saved.away}` : '—'}</b>
+                {match.actualAdvancingTeam && <span className="text-[9.5px] font-semibold text-[#c4cacc]">po 90 min</span>}
+              </span>
+              {q && <span className={`whitespace-nowrap text-[11px] font-bold ${toneCls}`}>{q.text}</span>}
+            </div>
+            {match.actualAdvancingTeam && advTeam && (
+              <div className="flex items-center justify-between text-[10.5px]">
+                <span className="text-[#9aa1ab]">Po k.s. napreduje: <b className="text-[#374151]">{advTeam.flag} {match.actualAdvancingTeam}</b></span>
+                {userAdvTeam && (
+                  <span className={`font-bold ${advCorrect ? 'text-[#15803d]' : 'text-[#d92d20]'}`}>
+                    {advCorrect ? `✓ ${userAdvTeam.flag} +bonus` : `✕ ${userAdvTeam.flag}`}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

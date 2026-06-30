@@ -130,8 +130,16 @@ export async function GET(request: Request) {
         continue
       }
 
-      const scoreHome: number | null = apiMatch.score?.fullTime?.home ?? null
-      const scoreAway: number | null = apiMatch.score?.fullTime?.away ?? null
+      // football-data.org: za penalty tekme score.fullTime nepravilno sešteje
+      // regularne + penalty gole (npr. 1+3=4, 1+4=5 za 1:1 tekmo s 3-4 penalti).
+      // score.extraTime = stanje po ET (kumulativno, brez penaltov) — to vedno hočemo.
+      // Za regularne tekme je score.extraTime = null → fallback na score.fullTime.
+      const etHome = apiMatch.score?.extraTime?.home
+      const etAway = apiMatch.score?.extraTime?.away
+      const ftHome: number | null = apiMatch.score?.fullTime?.home ?? null
+      const ftAway: number | null = apiMatch.score?.fullTime?.away ?? null
+      const scoreHome: number | null = (etHome !== null && etHome !== undefined) ? etHome : ftHome
+      const scoreAway: number | null = (etAway !== null && etAway !== undefined) ? etAway : ftAway
 
       if (scoreHome === null || scoreAway === null) {
         results.nullScore.push(`${apiHome} vs ${apiAway}`)

@@ -9,7 +9,8 @@
  * Brand: teal #0f766e · ink #15201d · line #ebeeec.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export type Player = {
   id: string;
@@ -38,6 +39,8 @@ const MEDAL = [
   'bg-[linear-gradient(140deg,#ecca9f,#c08a55)] text-[#6e4824]',
 ];
 
+const RANKS_KEY = 'lb_global_ranks_v1';
+
 function Avatar({ p }: { p: Player }) {
   if (p.avatarUrl) {
     return <img src={p.avatarUrl} alt="" className="h-[38px] w-[38px] flex-none rounded-full object-cover" />;
@@ -49,17 +52,43 @@ function Avatar({ p }: { p: Player }) {
   );
 }
 
-function Row({ p, rank, matchOnly }: { p: Player; rank: number; matchOnly: boolean }) {
+function RankArrow({ delta }: { delta: number }) {
+  if (delta === 0) return null;
+  return (
+    <span style={{
+      fontSize: 9, fontWeight: 800, lineHeight: 1,
+      color: delta > 0 ? '#16a34a' : '#dc2626',
+      marginLeft: 2,
+    }}>
+      {delta > 0 ? '▲' : '▼'}
+    </span>
+  );
+}
+
+function Row({
+  p, rank, matchOnly, prevRank, onClick,
+}: {
+  p: Player; rank: number; matchOnly: boolean; prevRank?: number; onClick: (id: string) => void;
+}) {
   const displayPoints = matchOnly ? (p.matchPoints ?? p.points) : p.points;
   const showBreakdown = !matchOnly && p.matchPoints !== undefined && p.specialPoints !== undefined;
+  const rankDelta = prevRank !== undefined ? prevRank - rank : 0;
 
   return (
-    <div className={`relative grid grid-cols-[58px_1fr_44px_104px] items-center border-b border-[#ebeeec] px-5 py-[13px] transition-colors last:border-b-0 max-[520px]:grid-cols-[46px_1fr_36px_90px] max-[520px]:px-3.5 ${p.you ? 'bg-[#e9f7f5]' : 'hover:bg-[#fafbfb]'}`}>
+    <div
+      onClick={() => onClick(p.id)}
+      style={{ cursor: 'pointer' }}
+      className={`relative grid grid-cols-[58px_1fr_44px_104px] items-center border-b border-[#ebeeec] px-5 py-[13px] transition-colors last:border-b-0 max-[520px]:grid-cols-[46px_1fr_36px_90px] max-[520px]:px-3.5 ${p.you ? 'bg-[#e9f7f5]' : 'hover:bg-[#fafbfb]'}`}>
       {p.you && <span className="absolute inset-y-0 left-0 w-[3px] bg-[#0f766e]" />}
       <div className="flex items-center justify-center">
         {rank <= 3
           ? <div className={`flex h-[30px] w-[30px] items-center justify-center rounded-full text-[13px] font-extrabold tabular-nums shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_2px_4px_rgba(16,24,40,0.12)] ${MEDAL[rank - 1]}`}>{rank}</div>
-          : <span className="text-[15px] font-bold tabular-nums text-[#aeb4bb]">{rank}</span>}
+          : (
+            <div className="flex flex-col items-center gap-0">
+              <span className="text-[15px] font-bold tabular-nums text-[#aeb4bb]">{rank}</span>
+              <RankArrow delta={rankDelta} />
+            </div>
+          )}
       </div>
       <div className="flex min-w-0 items-center gap-3">
         <Avatar p={p} />
@@ -92,8 +121,27 @@ export default function Leaderboard({
   rowsByTab,
   defaultTab,
 }: LeaderboardProps) {
+  const router = useRouter();
   const [tab, setTab] = useState(defaultTab ?? tabs[0]);
   const [matchOnly, setMatchOnly] = useState(false);
+  const [prevRanks, setPrevRanks] = useState<Record<string, number>>({});
+
+  // Rank tracking: read previous ranks, save current after 3s
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(RANKS_KEY);
+      if (stored) setPrevRanks(JSON.parse(stored));
+    } catch {}
+
+    const globalRows = rowsByTab['Globalna'] ?? [];
+    const current: Record<string, number> = {};
+    globalRows.forEach((p, i) => { current[p.id] = i + 1; });
+
+    const timer = setTimeout(() => {
+      try { localStorage.setItem(RANKS_KEY, JSON.stringify(current)); } catch {}
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const rows = useMemo(() => {
     const base = rowsByTab[tab] ?? [];
@@ -109,6 +157,13 @@ export default function Leaderboard({
   // Toggle pokaži samo ko VISI imajo matchPoints (ne samo kakšen)
   const tabRows = rowsByTab[tab] ?? [];
   const hasBreakdownData = tabRows.length > 0 && tabRows.every(p => p.matchPoints !== undefined);
+
+  // Global rank map (za current tab)
+  const globalRankMap = useMemo(() => {
+    const m: Record<string, number> = {};
+    (rowsByTab['Globalna'] ?? []).forEach((p, i) => { m[p.id] = i + 1; });
+    return m;
+  }, [rowsByTab]);
 
   return (
     <div className="mx-auto max-w-[680px]">
@@ -174,11 +229,21 @@ export default function Leaderboard({
           <div className="text-center">Točni</div>
           <div className="text-right">{matchOnly ? 'Točke tekem' : 'Točke skupaj'}</div>
         </div>
-        {rows.map((p, i) => <Row key={p.id} p={p} rank={i + 1} matchOnly={matchOnly} />)}
+        {rows.map((p, i) => (
+          <Row
+            key={p.id}
+            p={p}
+            rank={i + 1}
+            matchOnly={matchOnly}
+            prevRank={prevRanks[p.id]}
+            onClick={(id) => router.push(`/player/${id}`)}
+          />
+        ))}
         {rows.length === 0 && (
           <div className="px-5 py-10 text-center text-[13.5px] text-[#9aa1ab]">Še ni razvrstitve za to skupino.</div>
         )}
       </div>
+      <p className="mt-3 text-center text-[11px] text-[#c4cacc]">Tapni igralca za pregled napovedi</p>
     </div>
   );
 }
