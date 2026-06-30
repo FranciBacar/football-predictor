@@ -39,8 +39,13 @@ const MEDAL = [
   'bg-[linear-gradient(140deg,#ecca9f,#c08a55)] text-[#6e4824]',
 ];
 
-// v3: shranjujemo ranke PER TAB (ne samo globalno), da so puščice pravilne
-const RANKS_KEY = 'lb_ranks_v3';
+// v4: puščice vezane na zadnjo tekmo (fingerprint), ne na zadnji obisk
+const RANKS_KEY = 'lb_ranks_v4';
+
+type RanksStorage = {
+  fingerprint: string;                              // userId:točke za vse → se spremeni po syncu
+  ranksByTab: Record<string, Record<string, number>>;
+};
 
 function Avatar({ p }: { p: Player }) {
   if (p.avatarUrl) {
@@ -127,33 +132,37 @@ export default function Leaderboard({
   const [tab, setTab] = useState(defaultTab ?? tabs[0]);
   const [matchOnly, setMatchOnly] = useState(false);
 
-  // Sinhrono branje localStorage pred prvim renderjem → ni flash/miganja
-  // Format: { "Globalna": { userId: rank }, "Otroci": { userId: rank }, ... }
+  // Fingerprint = "userId:točke|..." za globalno lestvico.
+  // Se spremeni vsakič ko sync prinese nov rezultat → trigger za puščice.
+  const fingerprint = useMemo(() => {
+    return (rowsByTab['Globalna'] ?? []).map(p => `${p.id}:${p.points}`).join('|');
+  }, [rowsByTab]);
+
+  // Sinhrono branje localStorage — prejšnji ranki (pred zadnjo tekmo)
   const [prevRanksByTab] = useState<Record<string, Record<string, number>>>(() => {
     try {
       const stored = localStorage.getItem(RANKS_KEY);
-      return stored ? (JSON.parse(stored) as Record<string, Record<string, number>>) : {};
-    } catch {
-      return {};
-    }
+      if (!stored) return {};
+      return (JSON.parse(stored) as RanksStorage).ranksByTab ?? {};
+    } catch { return {}; }
   });
 
-  // Shrani ranke VSEH tabov ob odhodu s strani
+  // Ko se fingerprint spremeni (nova tekma) → shrani nov snapshot kot baseline
   useEffect(() => {
-    const current: Record<string, Record<string, number>> = {};
-    for (const [tabName, tabRows] of Object.entries(rowsByTab)) {
-      current[tabName] = {};
-      tabRows.forEach((p, i) => { current[tabName][p.id] = i + 1; });
-    }
-    const save = () => {
-      try { localStorage.setItem(RANKS_KEY, JSON.stringify(current)); } catch {}
-    };
-    window.addEventListener('beforeunload', save);
-    return () => {
-      window.removeEventListener('beforeunload', save);
-      save(); // shrani ob unmount (navigacija znotraj app)
-    };
-  }, [rowsByTab]);
+    try {
+      const stored = localStorage.getItem(RANKS_KEY);
+      const parsed = stored ? (JSON.parse(stored) as RanksStorage) : null;
+      if (parsed?.fingerprint === fingerprint) return; // nič novega, ne shranjuj
+
+      // Lestvica se je spremenila → shrani trenutno stanje za naslednjo primerjavo
+      const current: Record<string, Record<string, number>> = {};
+      for (const [tabName, tabRows] of Object.entries(rowsByTab)) {
+        current[tabName] = {};
+        tabRows.forEach((p, i) => { current[tabName][p.id] = i + 1; });
+      }
+      localStorage.setItem(RANKS_KEY, JSON.stringify({ fingerprint, ranksByTab: current }));
+    } catch {}
+  }, [fingerprint, rowsByTab]);
 
   const rows = useMemo(() => {
     const base = rowsByTab[tab] ?? [];
