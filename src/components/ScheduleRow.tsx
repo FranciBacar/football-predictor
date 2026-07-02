@@ -163,7 +163,9 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
             {hasPenalty && advTeam && (
               <div className="flex items-center justify-between text-[10.5px]">
                 <span className="flex items-center gap-1 text-[#6b7280]">
-                  <span className="text-[#c4cacc]">po penalih napreduje</span>
+                  <span className="text-[#c4cacc]">
+                    {match.actualPenaltyHome != null ? 'po penalih napreduje' : 'po pod. napreduje'}
+                  </span>
                   <span className="font-semibold text-[#374151]">{advTeam.flag} {match.actualAdvancingTeam}</span>
                   {match.actualPenaltyHome != null && (
                     <span className="rounded bg-[#f4f7f6] px-[5px] py-[1px] text-[9.5px] font-bold tabular-nums text-[#6b7280]">

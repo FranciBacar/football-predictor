@@ -319,7 +319,7 @@ export default async function PlayerHistoryPage({
                             <span style={{
                               fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase',
                               letterSpacing: '0.06em', color: '#aab0b8',
-                            }}>Po penalih</span>
+                            }}>{hasPenScore ? 'Po penalih' : 'Po pod.'}</span>
                             {hasPenScore && (
                               <span style={{ fontSize: 12, fontWeight: 700, color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
                                 {penHome}:{penAway}
