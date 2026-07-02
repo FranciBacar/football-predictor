@@ -177,9 +177,13 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
                     {match.actualPenaltyHome != null ? 'po penalih napreduje' : 'po pod. napreduje'}
                   </span>
                   <span className="font-semibold text-[#374151]">{advTeam.flag} {match.actualAdvancingTeam}</span>
-                  {match.actualPenaltyHome != null && (
+                  {match.actualPenaltyHome != null ? (
                     <span className="rounded bg-[#f4f7f6] px-[5px] py-[1px] text-[9.5px] font-bold tabular-nums text-[#6b7280]">
                       pen. {match.actualPenaltyHome}:{match.actualPenaltyAway}
+                    </span>
+                  ) : totalHome !== null && (
+                    <span className="rounded bg-[#f4f7f6] px-[5px] py-[1px] text-[9.5px] font-bold tabular-nums text-[#6b7280]">
+                      {totalHome}:{totalAway}
                     </span>
                   )}
                 </span>
