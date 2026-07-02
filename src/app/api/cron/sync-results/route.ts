@@ -112,7 +112,7 @@ export async function GET(request: Request) {
     // ki so v bazi še Upcoming čeprav so bile že odigrane (+ Finished za VAR korekcije)
     const { data: ourMatches, error: dbError } = await supabase
       .from('matches')
-      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away, actual_penalty_home')
+      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away, actual_penalty_home, actual_advancing_team')
 
     if (dbError) throw new Error(dbError.message)
     if (!ourMatches || ourMatches.length === 0) {
