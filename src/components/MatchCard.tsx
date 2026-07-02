@@ -26,6 +26,8 @@ export type Match = {
   actualAdvancingTeam?: string | null;  // ekipa ki napreduje po penaltih
   actualPenaltyHome?: number | null;    // goli na penaltih (home)
   actualPenaltyAway?: number | null;    // goli na penaltih (away)
+  actualEtHome?: number | null;         // goli v podaljških (home)
+  actualEtAway?: number | null;         // goli v podaljških (away)
   earned?: number | null;
   hint?: MatchHintData | null;
 };

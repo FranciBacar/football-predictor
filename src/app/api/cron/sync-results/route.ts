@@ -112,7 +112,7 @@ export async function GET(request: Request) {
     // ki so v bazi še Upcoming čeprav so bile že odigrane (+ Finished za VAR korekcije)
     const { data: ourMatches, error: dbError } = await supabase
       .from('matches')
-      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away, actual_penalty_home, actual_advancing_team')
+      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away, actual_penalty_home, actual_advancing_team, actual_et_home')
 
     if (dbError) throw new Error(dbError.message)
     if (!ourMatches || ourMatches.length === 0) {
@@ -215,6 +215,8 @@ export async function GET(request: Request) {
       let actualAdvancingTeam: string | null = null
       let actualPenaltyHome: number | null = null
       let actualPenaltyAway: number | null = null
+      let actualEtHome: number | null = null
+      let actualEtAway: number | null = null
       if (ourMatch.is_knockout && finalScoreHome === finalScoreAway) {
         const penHome: number | null = apiMatch.score?.penalties?.home ?? null
         const penAway: number | null = apiMatch.score?.penalties?.away ?? null
@@ -235,19 +237,23 @@ export async function GET(request: Request) {
           } else if (finalFtAway > finalFtHome) {
             actualAdvancingTeam = ourMatch.away_team
           }
-          // actualPenaltyHome/Away ostane null (ni bilo kazenskih strelov)
+          // Shrani ET gole za prikaz skupnega rezultata (actual_score + et = skupaj)
+          actualEtHome = scoresReversed ? (etDataAway ?? null) : (etDataHome ?? null)
+          actualEtAway = scoresReversed ? (etDataHome ?? null) : (etDataAway ?? null)
         }
       }
 
       // 5. Preskoči če je score že enak IN advancing/penalty stolpci so že izpolnjeni
       const penaltyMissing = ourMatch.is_knockout && actualPenaltyHome !== null && ourMatch.actual_penalty_home === null
       const advancingMissing = ourMatch.is_knockout && actualAdvancingTeam !== null && ourMatch.actual_advancing_team === null
+      const etMissing = ourMatch.is_knockout && actualEtHome !== null && ourMatch.actual_et_home === null
       if (
         ourMatch.status === 'Finished' &&
         ourMatch.actual_score_home === finalScoreHome &&
         ourMatch.actual_score_away === finalScoreAway &&
         !penaltyMissing &&
-        !advancingMissing
+        !advancingMissing &&
+        !etMissing
       ) {
         results.skipped++
         continue
@@ -263,6 +269,8 @@ export async function GET(request: Request) {
           actual_advancing_team: actualAdvancingTeam,
           actual_penalty_home: actualPenaltyHome,
           actual_penalty_away: actualPenaltyAway,
+          actual_et_home: actualEtHome,
+          actual_et_away: actualEtAway,
           updated_at: new Date().toISOString(),
         })
         .eq('id', ourMatch.id)

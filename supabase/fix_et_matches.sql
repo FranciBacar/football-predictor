@@ -19,6 +19,8 @@ SET
     actual_advancing_team  = 'Belgija',
     actual_penalty_home    = NULL,   -- ni bilo kazenskih strelov
     actual_penalty_away    = NULL,
+    actual_et_home         = 1,      -- Belgija je zadela v podaljških
+    actual_et_away         = 0,
     updated_at             = NOW()
 WHERE home_team = 'Belgija'
   AND away_team = 'Senegal'

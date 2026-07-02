@@ -33,6 +33,8 @@ export type Match = {
   actualAdvancingTeam?: string | null;  // ekipa ki napreduje po penaltih
   actualPenaltyHome?: number | null;    // penalty score (home)
   actualPenaltyAway?: number | null;    // penalty score (away)
+  actualEtHome?: number | null;         // goli v podaljških (home)
+  actualEtAway?: number | null;         // goli v podaljških (away)
   earned?: number | null;      // dosežene točke (finished)
   hint?: MatchHintData | null; // podatki algoritma (open, pred zaklepom)
 };
@@ -120,11 +122,19 @@ export function ClosedRow({ match, saved, onOpen }: { match: Match; saved: Score
   const userAdvTeam = userAdvCode === match.home.code ? match.home : userAdvCode === match.away.code ? match.away : null;
   const advCorrect = !!(userAdvCode && advCode && userAdvCode === advCode);
 
-  // Za prikaz skupnega (končnega) rezultata vključno s penalti
-  const totalHome = hasPenalty && match.actual && match.actualPenaltyHome != null
-    ? match.actual.home + match.actualPenaltyHome : null;
-  const totalAway = hasPenalty && match.actual && match.actualPenaltyAway != null
-    ? match.actual.away + match.actualPenaltyAway : null;
+  // Za prikaz skupnega (končnega) rezultata:
+  // - Penalty shootout: actual + penalty goli
+  // - ET (brez shootout): actual + ET goli
+  const totalHome = hasPenalty && match.actual
+    ? (match.actualPenaltyHome != null
+        ? match.actual.home + match.actualPenaltyHome
+        : (match.actualEtHome != null ? match.actual.home + match.actualEtHome : null))
+    : null;
+  const totalAway = hasPenalty && match.actual
+    ? (match.actualPenaltyAway != null
+        ? match.actual.away + match.actualPenaltyAway
+        : (match.actualEtAway != null ? match.actual.away + match.actualEtAway : null))
+    : null;
 
   return (
     <button type="button" onClick={onOpen}

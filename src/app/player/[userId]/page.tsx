@@ -85,7 +85,7 @@ export default async function PlayerHistoryPage({
   // 3. VSE zaključene tekme (ne samo tiste z napovedmi)
   const { data: finishedMatches } = await admin
     .from('matches')
-    .select('id, home_team, away_team, actual_score_home, actual_score_away, actual_advancing_team, actual_penalty_home, actual_penalty_away, stage, match_time_utc, is_knockout, status')
+    .select('id, home_team, away_team, actual_score_home, actual_score_away, actual_advancing_team, actual_penalty_home, actual_penalty_away, actual_et_home, actual_et_away, stage, match_time_utc, is_knockout, status')
     .eq('status', 'Finished')
     .order('match_time_utc', { ascending: true })
 
@@ -266,7 +266,14 @@ export default async function PlayerHistoryPage({
                 const stripColor = pts > 0 ? (q.tone === 'hit' ? '#16a34a' : '#0f766e') : '#d1d5db'
                 const penHome: number | null = m.actual_penalty_home ?? null
                 const penAway: number | null = m.actual_penalty_away ?? null
+                const etHome: number | null = m.actual_et_home ?? null
+                const etAway: number | null = m.actual_et_away ?? null
                 const hasPenScore = hasAdv && penHome !== null && penAway !== null
+                // Skupni končni rezultat (za prikaz): actual + pen ali actual + et
+                const totalHome = hasPenScore ? (m.actual_score_home ?? 0) + penHome!
+                  : etHome !== null ? (m.actual_score_home ?? 0) + etHome : null
+                const totalAway = hasPenScore ? (m.actual_score_away ?? 0) + penAway!
+                  : etAway !== null ? (m.actual_score_away ?? 0) + etAway : null
 
                 return (
                   <div key={m.id} style={{
@@ -323,6 +330,11 @@ export default async function PlayerHistoryPage({
                             {hasPenScore && (
                               <span style={{ fontSize: 12, fontWeight: 700, color: '#374151', fontVariantNumeric: 'tabular-nums' }}>
                                 {penHome}:{penAway}
+                              </span>
+                            )}
+                            {totalHome !== null && (
+                              <span style={{ fontSize: 10, color: '#9aa1ab', fontVariantNumeric: 'tabular-nums' }}>
+                                skupaj: <b style={{ color: '#374151' }}>{totalHome}:{totalAway}</b>
                               </span>
                             )}
                             <span style={{ color: '#d1d5db', fontSize: 11 }}>·</span>
