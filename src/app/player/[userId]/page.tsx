@@ -112,12 +112,11 @@ export default async function PlayerHistoryPage({
     if (!byStage[label]) byStage[label] = []
     byStage[label].push(m)
   }
+  // Obratni vrstni red faz: najnovejše (Final, Polfinale, ..., Skupina A) na vrhu
   const stageLabels = Object.keys(byStage).sort((a, b) => {
-    const la = STAGE_LABELS[Object.keys(STAGE_LABELS).find(k => STAGE_LABELS[k] === a) ?? ''] ?? a
-    const lb = STAGE_LABELS[Object.keys(STAGE_LABELS).find(k => STAGE_LABELS[k] === b) ?? ''] ?? b
     const ia = STAGE_ORDER.findIndex(s => STAGE_LABELS[s] === a)
     const ib = STAGE_ORDER.findIndex(s => STAGE_LABELS[s] === b)
-    return (ia > -1 ? ia : 99) - (ib > -1 ? ib : 99)
+    return (ib > -1 ? ib : -1) - (ia > -1 ? ia : -1)
   })
 
   // Initials za avatar
