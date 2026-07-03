@@ -83,6 +83,8 @@ export async function GET(request: Request) {
     noMatch: [] as string[],
     unmapped: [] as string[],
     errors: [] as string[],
+    apiKnockout: [] as string[],   // debug: kaj API vrača za knockout tekme
+    dbTbd: [] as string[],         // debug: TBD tekme v naši bazi
   }
 
   try {
@@ -116,6 +118,14 @@ export async function GET(request: Request) {
     if (!tbdMatches || tbdMatches.length === 0) {
       return NextResponse.json({ message: 'Ni TBD tekem v bazi.', ...results })
     }
+
+    // Debug: pokaži TBD tekme v bazi
+    results.dbTbd = tbdMatches.map(m => `${m.stage} | ${m.home_team} vs ${m.away_team} | ${m.match_time_utc}`)
+
+    // Debug: pokaži knockout tekme iz API-ja (vključno s TBD)
+    results.apiKnockout = upcomingMatches
+      .filter((m: any) => STAGE_MAP[m.stage])
+      .map((m: any) => `${m.stage} | ${m.homeTeam?.name ?? '?'} vs ${m.awayTeam?.name ?? '?'} | ${m.utcDate} | status:${m.status}`)
 
     // Pridobi obstoječe poimenovane tekme (za preverjanje duplikatov)
     const { data: namedMatches } = await supabase
