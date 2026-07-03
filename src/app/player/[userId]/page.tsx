@@ -87,7 +87,7 @@ export default async function PlayerHistoryPage({
     .from('matches')
     .select('id, home_team, away_team, actual_score_home, actual_score_away, actual_advancing_team, actual_penalty_home, actual_penalty_away, actual_et_home, actual_et_away, stage, match_time_utc, is_knockout, status')
     .eq('status', 'Finished')
-    .order('match_time_utc', { ascending: true })
+    .order('match_time_utc', { ascending: false })
 
   // 4. Združi: tekme z napovedmi (pred = null če napovedi ni)
   const predMap = new Map((preds ?? []).map((p: any) => [p.match_id, p]))
