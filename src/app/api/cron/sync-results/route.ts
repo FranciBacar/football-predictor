@@ -153,6 +153,8 @@ export async function GET(request: Request) {
       const penDataAway: number | null = apiMatch.score?.penalties?.away ?? null
       const etDataHome: number | null = apiMatch.score?.extraTime?.home ?? null
       const etDataAway: number | null = apiMatch.score?.extraTime?.away ?? null
+      // score.duration: "REGULAR" | "EXTRA_TIME" | "PENALTY_SHOOTOUT"
+      const scoreDuration: string | null = apiMatch.score?.duration ?? null
 
       if (penDataHome !== null && penDataAway !== null && ftHome !== null && ftAway !== null) {
         // KAZENSKI STRELI: odštej penalty gole za 90-min rezultat
@@ -162,6 +164,13 @@ export async function GET(request: Request) {
           scoreHome = computed90Home
           scoreAway = computed90Away
         }
+      } else if (scoreDuration === 'PENALTY_SHOOTOUT') {
+        // API potrjuje da so bili kazenski streli, ampak score.penalties podatkov še nima.
+        // fullTime vsebuje kumulativne gole (90min + ET + penalty) → ne smemo shraniti.
+        // Preskočimo — ročno popravljeni score v DB ostane nedotaknjen.
+        results.nullScore.push(`${apiHome} vs ${apiAway} (PENALTY_SHOOTOUT — brez penalty podatkov, preskočeno)`)
+        results.skipped++
+        continue
       } else if (etDataHome !== null && etDataAway !== null && ftHome !== null && ftAway !== null) {
         // PODALJŠKI (brez kazenskih strelov): odštej ET gole za 90-min rezultat
         const computed90Home = ftHome - etDataHome
@@ -170,6 +179,12 @@ export async function GET(request: Request) {
           scoreHome = computed90Home
           scoreAway = computed90Away
         }
+      } else if (scoreDuration === 'EXTRA_TIME') {
+        // API potrjuje podaljške, ampak score.extraTime podatkov še nima.
+        // fullTime vsebuje ET gole → ne smemo shraniti.
+        results.nullScore.push(`${apiHome} vs ${apiAway} (EXTRA_TIME — brez ET podatkov, preskočeno)`)
+        results.skipped++
+        continue
       }
 
       if (scoreHome === null || scoreAway === null) {
