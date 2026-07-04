@@ -123,11 +123,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Ni zaključenih tekem v viru.', ...results })
     }
 
+    // DEBUG (?debug=1): vrni surov score objekt za vsako tekmo, nič ne piše v bazo.
+    // Namen: videti točno kaj football-data.org vrne za penalty/ET tekme.
+    const debug = new URL(request.url).searchParams.get('debug') === '1'
+    if (debug) {
+      return NextResponse.json({
+        debug: true,
+        count: finishedMatches.length,
+        matches: finishedMatches.map((m: any) => ({
+          home: m.homeTeam?.name,
+          away: m.awayTeam?.name,
+          utcDate: m.utcDate,
+          stage: m.stage,
+          score: m.score,
+        })),
+      })
+    }
+
     // 2. Pridobi VSE naše tekme — API filtrira FINISHED, mi pa lovimo tudi Upcoming knockout tekme
     // ki so v bazi še Upcoming čeprav so bile že odigrane (+ Finished za VAR korekcije)
     const { data: ourMatches, error: dbError } = await supabase
       .from('matches')
-      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away, actual_penalty_home, actual_advancing_team, actual_et_home')
+      .select('id, home_team, away_team, match_time_utc, is_knockout, status, actual_score_home, actual_score_away, actual_penalty_home, actual_advancing_team, actual_et_home, score_locked')
 
     if (dbError) throw new Error(dbError.message)
     if (!ourMatches || ourMatches.length === 0) {
@@ -260,6 +277,15 @@ export async function GET(request: Request) {
 
       if (!ourMatch) {
         results.noMatch.push(`${apiHome} vs ${apiAway}`)
+        results.skipped++
+        continue
+      }
+
+      // ROČNI LOCK: če je rezultat ročno popravljen (score_locked=true),
+      // ga cron NE sme prepisati. Varnostna mreža za redke primere, ko tudi
+      // per-match endpoint ne vrne uporabnih ET/penalty podatkov.
+      if (ourMatch.score_locked) {
+        results.nullScore.push(`${apiHome} vs ${apiAway} (score_locked — ročni rezultat, preskočeno)`)
         results.skipped++
         continue
       }
