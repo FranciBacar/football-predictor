@@ -145,9 +145,14 @@ export async function GET(request: Request) {
       .neq('away_team', 'TBD')
       .eq('status', 'Upcoming')
 
-    const existingPairs = new Set(
-      (namedMatches ?? []).map(m => `${m.stage}:${m.home_team}:${m.away_team}`)
-    )
+    // Dedup neodvisen od vrstnega reda: football-data.org lahko vrne ekipi v
+    // obratnem home/away vrstnem redu kot naša baza (npr. API "Portugal vs Spain"
+    // vs DB "Španija vs Portugalska"). Dodamo oba vrstna reda.
+    const existingPairs = new Set<string>()
+    for (const m of namedMatches ?? []) {
+      existingPairs.add(`${m.stage}:${m.home_team}:${m.away_team}`)
+      existingPairs.add(`${m.stage}:${m.away_team}:${m.home_team}`)
+    }
 
     // 3. Za vsako prihajoče tekmo iz API-ja → poiščemo ujemajočo TBD tekmo
     // Matchamo po stage + najbližji čas (naši DB časi so lahko napačni za več ur)
