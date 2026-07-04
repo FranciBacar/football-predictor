@@ -203,9 +203,12 @@ export async function GET(request: Request) {
       let scoreHome: number | null = null
       let scoreAway: number | null = null
 
-      // 1. regularTime: najzanesljivejši vir (per-match endpoint)
-      const rtHome: number | null = detailScore?.regularTime?.home ?? null
-      const rtAway: number | null = detailScore?.regularTime?.away ?? null
+      // 1. regularTime: najzanesljivejši vir = neposredno rezultat po 90 min.
+      //    Prisoten je že v list endpointu za ET/penalty tekme (per-match kot rezerva).
+      //    Za PENALTY_SHOOTOUT je fullTime rezultat strelov, penalties polje pa pogosto
+      //    smeti (npr. 4:4) — zato regularTime, ne odštevanje.
+      const rtHome: number | null = apiMatch.score?.regularTime?.home ?? detailScore?.regularTime?.home ?? null
+      const rtAway: number | null = apiMatch.score?.regularTime?.away ?? detailScore?.regularTime?.away ?? null
       if (rtHome !== null && rtAway !== null) {
         scoreHome = rtHome
         scoreAway = rtAway
@@ -302,8 +305,19 @@ export async function GET(request: Request) {
       let actualEtHome: number | null = null
       let actualEtAway: number | null = null
       if (ourMatch.is_knockout && finalScoreHome === finalScoreAway) {
-        if (penDataHome !== null && penDataAway !== null) {
-          // KAZENSKI STRELI: zmagovalec = tisti z več penalty goli
+        // KAZENSKI STRELI: pri PENALTY_SHOOTOUT je fullTime dejanski rezultat strelov
+        // (npr. Avstralija 3 : Egipt 5). Polje score.penalties je pri football-data.org
+        // pogosto nezanesljivo (npr. 4:4), zato ima fullTime prednost.
+        const penFromFullTime =
+          scoreDuration === 'PENALTY_SHOOTOUT' && ftHome !== null && ftAway !== null && ftHome !== ftAway
+        if (penFromFullTime) {
+          const finalPenHome = scoresReversed ? (ftAway as number) : (ftHome as number)
+          const finalPenAway = scoresReversed ? (ftHome as number) : (ftAway as number)
+          actualAdvancingTeam = finalPenHome > finalPenAway ? ourMatch.home_team : ourMatch.away_team
+          actualPenaltyHome = finalPenHome
+          actualPenaltyAway = finalPenAway
+        } else if (penDataHome !== null && penDataAway !== null && penDataHome !== penDataAway) {
+          // Rezerva: veljavni score.penalties podatki (različni → odločen zmagovalec)
           const finalPenHome = scoresReversed ? penDataAway : penDataHome
           const finalPenAway = scoresReversed ? penDataHome : penDataAway
           actualAdvancingTeam = finalPenHome > finalPenAway ? ourMatch.home_team : ourMatch.away_team
