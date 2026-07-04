@@ -107,6 +107,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Ni prihajajočih tekem v viru.', ...results })
     }
 
+    // Mapiranje API stage → naš DB stage (deklarirano pred prvo uporabo — TDZ!)
+    const STAGE_MAP: Record<string, string> = {
+      'LAST_32': 'Round of 32',
+      'LAST_16': 'Round of 16',
+      'QUARTER_FINALS': 'Quarter-finals',
+      'SEMI_FINALS': 'Semi-finals',
+      'THIRD_PLACE': 'Third place play-off',
+      'FINAL': 'Final',
+    }
+
     // 2. Pridobi TBD tekme iz naše baze
     const { data: tbdMatches, error: dbError } = await supabase
       .from('matches')
@@ -138,16 +148,6 @@ export async function GET(request: Request) {
     const existingPairs = new Set(
       (namedMatches ?? []).map(m => `${m.stage}:${m.home_team}:${m.away_team}`)
     )
-
-    // Mapiranje API stage → naš DB stage
-    const STAGE_MAP: Record<string, string> = {
-      'LAST_32': 'Round of 32',
-      'LAST_16': 'Round of 16',
-      'QUARTER_FINALS': 'Quarter-finals',
-      'SEMI_FINALS': 'Semi-finals',
-      'THIRD_PLACE': 'Third place play-off',
-      'FINAL': 'Final',
-    }
 
     // 3. Za vsako prihajoče tekmo iz API-ja → poiščemo ujemajočo TBD tekmo
     // Matchamo po stage + najbližji čas (naši DB časi so lahko napačni za več ur)
