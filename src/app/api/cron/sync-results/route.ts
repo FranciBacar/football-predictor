@@ -305,24 +305,34 @@ export async function GET(request: Request) {
       let actualEtHome: number | null = null
       let actualEtAway: number | null = null
       if (ourMatch.is_knockout && finalScoreHome === finalScoreAway) {
-        // KAZENSKI STRELI: pri PENALTY_SHOOTOUT je fullTime dejanski rezultat strelov
-        // (npr. Avstralija 3 : Egipt 5). Polje score.penalties je pri football-data.org
-        // pogosto nezanesljivo (npr. 4:4), zato ima fullTime prednost.
-        const penFromFullTime =
-          scoreDuration === 'PENALTY_SHOOTOUT' && ftHome !== null && ftAway !== null && ftHome !== ftAway
-        if (penFromFullTime) {
-          const finalPenHome = scoresReversed ? (ftAway as number) : (ftHome as number)
-          const finalPenAway = scoresReversed ? (ftHome as number) : (ftAway as number)
-          actualAdvancingTeam = finalPenHome > finalPenAway ? ourMatch.home_team : ourMatch.away_team
-          actualPenaltyHome = finalPenHome
-          actualPenaltyAway = finalPenAway
-        } else if (penDataHome !== null && penDataAway !== null && penDataHome !== penDataAway) {
-          // Rezerva: veljavni score.penalties podatki (različni → odločen zmagovalec)
-          const finalPenHome = scoresReversed ? penDataAway : penDataHome
-          const finalPenAway = scoresReversed ? penDataHome : penDataAway
-          actualAdvancingTeam = finalPenHome > finalPenAway ? ourMatch.home_team : ourMatch.away_team
-          actualPenaltyHome = finalPenHome
-          actualPenaltyAway = finalPenAway
+        if (scoreDuration === 'PENALTY_SHOOTOUT') {
+          // Rezultat kazenskih strelov. football-data.org je NEKONSISTENTEN:
+          //  a) fullTime = regularTime + penalties (zložen) → penalties je pravi rezultat
+          //     (npr. Nemčija: rt 1:1, pen 3:4, ft 4:5 = 1+3 : 1+4)
+          //  b) fullTime = surov rezultat strelov, penalties = smeti
+          //     (npr. Egipt: rt 1:1, pen 4:4, ft 3:5 → uporabi ft)
+          // Razlikujemo po samo-konsistentnosti: ali velja rt + penalties == fullTime?
+          let penH: number | null = null
+          let penA: number | null = null
+          const consistent =
+            rtHome !== null && rtAway !== null &&
+            penDataHome !== null && penDataAway !== null &&
+            ftHome !== null && ftAway !== null &&
+            rtHome + penDataHome === ftHome && rtAway + penDataAway === ftAway
+          if (consistent) {
+            penH = penDataHome; penA = penDataAway            // penalties zanesljivi
+          } else if (ftHome !== null && ftAway !== null && ftHome !== ftAway) {
+            penH = ftHome; penA = ftAway                      // fullTime = surov rezultat strelov
+          } else if (penDataHome !== null && penDataAway !== null && penDataHome !== penDataAway) {
+            penH = penDataHome; penA = penDataAway             // zadnja rezerva
+          }
+          if (penH !== null && penA !== null && penH !== penA) {
+            const finalPenHome = scoresReversed ? penA : penH
+            const finalPenAway = scoresReversed ? penH : penA
+            actualAdvancingTeam = finalPenHome > finalPenAway ? ourMatch.home_team : ourMatch.away_team
+            actualPenaltyHome = finalPenHome
+            actualPenaltyAway = finalPenAway
+          }
         } else if (etDataHome !== null && etDataAway !== null && ftHome !== null && ftAway !== null) {
           // PODALJŠKI (brez kazenskih strelov): napredovalec = zmagovalec po ET (fullTime)
           // ftHome/ftAway = kumulativni rezultat vključno z ET goli
