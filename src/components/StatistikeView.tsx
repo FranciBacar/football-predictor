@@ -131,9 +131,9 @@ function MatchStat({ match, label }: { match: StatMatch; label: string }) {
         <div style={{ flex: 1, height: 6, borderRadius: 99, background: '#f0f2f1', overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pct}%`, borderRadius: 99, background: pct === 0 ? '#e5e7eb' : '#0f766e' }} />
         </div>
-        <span style={{ fontSize: 11.5, color: '#9aa1ab', whiteSpace: 'nowrap' }}>
-          {match.correct} / {match.total} pravilnih
-        </span>
+      </div>
+      <div style={{ fontSize: 12, color: '#6b7280' }}>
+        <b>{match.correct}</b> od <b>{match.total}</b> udeležencev je napovedalo pravilno
       </div>
       <div style={{ fontSize: 11, color: '#b0b8c1' }}>{label}</div>
     </div>
