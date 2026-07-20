@@ -53,7 +53,7 @@ export default async function StatistikePage() {
   const globalIds = new Set(globalUsers.map((u) => u.user_id))
 
   const [{ data: allPreds }, { data: finishedMatches }, { data: allSpecial }] = await Promise.all([
-    admin.from('predictions').select('user_id, match_id, earned_points, pred_score_home, pred_score_away'),
+    admin.from('predictions').select('user_id, match_id, earned_points, pred_score_home, pred_score_away').limit(10000),
     admin.from('matches').select('id, home_team, away_team, stage, is_knockout, actual_score_home, actual_score_away').eq('status', 'Finished'),
     admin.from('special_predictions').select('user_id, earned_points'),
   ])
