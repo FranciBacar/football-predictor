@@ -52,13 +52,31 @@ export default async function StatistikePage() {
   // 2. Napovedi + zaključene tekme + posebne napovedi
   const globalIds = new Set(globalUsers.map((u) => u.user_id))
 
-  const [{ data: allPreds }, { data: finishedMatches }, { data: allSpecial }] = await Promise.all([
-    admin.from('predictions').select('user_id, match_id, earned_points, pred_score_home, pred_score_away').limit(10000),
+  // Supabase/PostgREST max_rows = 1000 — moramo paginirati
+  async function fetchAllPredictions() {
+    const PAGE = 1000
+    const rows: any[] = []
+    let from = 0
+    while (true) {
+      const { data } = await admin
+        .from('predictions')
+        .select('user_id, match_id, earned_points, pred_score_home, pred_score_away')
+        .range(from, from + PAGE - 1)
+      if (!data || data.length === 0) break
+      rows.push(...data)
+      if (data.length < PAGE) break
+      from += PAGE
+    }
+    return rows
+  }
+
+  const [allPreds, { data: finishedMatches }, { data: allSpecial }] = await Promise.all([
+    fetchAllPredictions(),
     admin.from('matches').select('id, home_team, away_team, stage, is_knockout, actual_score_home, actual_score_away').eq('status', 'Finished'),
     admin.from('special_predictions').select('user_id, earned_points'),
   ])
 
-  const matchMap = new Map((finishedMatches ?? []).map((m) => [m.id, m]))
+  const matchMap = new Map((finishedMatches ?? []).map((m: any) => [m.id, m]))
 
   // Statistike po uporabniku
   type UStats = { grpPts: number; grpN: number; kooPts: number; kooN: number; exact: number; correct: number; special: number }
@@ -75,7 +93,7 @@ export default async function StatistikePage() {
     uStats[sp.user_id].special += sp.earned_points ?? 0
   }
 
-  for (const p of (allPreds ?? [])) {
+  for (const p of allPreds) {
     if (!globalIds.has(p.user_id)) continue
     const m = matchMap.get(p.match_id)
     if (!m) continue
@@ -129,11 +147,11 @@ export default async function StatistikePage() {
       exact: u.exact_predictions as number }))
     .sort((a, b) => b.exact - a.exact).slice(0, 3)
 
-  // Posebni strokovnjak — največ točk iz posebnih napovedi
+  // Posebni strokovnjak — top 3 po točkah iz posebnih napovedi
   const bestSpecial = globalUsers
     .map((u) => ({ name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
       special: uStats[u.user_id]?.special ?? 0 }))
-    .filter((u) => u.special > 0).sort((a, b) => b.special - a.special)[0] ?? null
+    .filter((u) => u.special > 0).sort((a, b) => b.special - a.special).slice(0, 3)
 
   // Najtežja / najlažja tekma — pct glede na VSE udeležence (ne samo tiste ki so napovedali)
   const nParticipants = globalUsers.length
@@ -151,7 +169,7 @@ export default async function StatistikePage() {
   const easiestMatch = matchesRanked[matchesRanked.length - 1] ?? null
 
   // Skupne številke
-  const filteredPreds = (allPreds ?? []).filter((p) => globalIds.has(p.user_id) && matchMap.has(p.match_id))
+  const filteredPreds = allPreds.filter((p) => globalIds.has(p.user_id) && matchMap.has(p.match_id))
   const totalPredictions = filteredPreds.length
   const totalExact = filteredPreds.filter((p) => {
     const m = matchMap.get(p.match_id)

@@ -43,7 +43,7 @@ type Props = {
   bestKnockout: StatPerson[]
   mostExact: StatPerson[]
   mostCorrect: StatPerson[]
-  bestSpecial: StatPerson | null
+  bestSpecial: StatPerson[]
   hardestMatch: StatMatch | null
   easiestMatch: StatMatch | null
   totalParticipants: number
@@ -259,9 +259,9 @@ export default function StatistikeView({
           </StatCard>
         )}
 
-        {bestSpecial && (
+        {bestSpecial.length > 0 && (
           <StatCard title="Posebne napovedi" icon="🔮">
-            <PersonRankList people={[bestSpecial]}
+            <PersonRankList people={bestSpecial}
               getValue={(p) => String(p.special ?? 0)}
               sub="točk iz posebnih napovedi" />
           </StatCard>
