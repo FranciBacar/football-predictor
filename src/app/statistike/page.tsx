@@ -123,10 +123,10 @@ export default async function StatistikePage() {
       correct: uStats[u.user_id]?.correct ?? 0 }))
     .sort((a, b) => b.correct - a.correct).slice(0, 3)
 
-  // Točen rezultat — top 3 (točnih izidov: pred==actual)
+  // Točen rezultat — top 3 direktno iz RPC (ista definicija kot lestvica, zanesljivo)
   const mostExact = globalUsers
     .map((u) => ({ name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
-      exact: uStats[u.user_id]?.exact ?? 0 }))
+      exact: u.exact_predictions as number }))
     .sort((a, b) => b.exact - a.exact).slice(0, 3)
 
   // Posebni strokovnjak — največ točk iz posebnih napovedi
