@@ -99,35 +99,35 @@ export default async function StatistikePage() {
     if (pts > 0) mStats[p.match_id].correct++
   }
 
-  // Najboljši skupinski napovedi (avg pts/tekmo, min 20 napovedi)
+  // Skupinski mojster — top 3 (avg pts/tekmo, min 20 napovedi)
   const bestGroup = globalUsers
     .map((u) => {
       const s = uStats[u.user_id]
       return { name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
         avg: s && s.grpN >= 20 ? s.grpPts / s.grpN : -1, count: s?.grpN ?? 0 }
     })
-    .filter((u) => u.avg >= 0).sort((a, b) => b.avg - a.avg)[0] ?? null
+    .filter((u) => u.avg >= 0).sort((a, b) => b.avg - a.avg).slice(0, 3)
 
-  // Najboljši izločilni napovedi (avg pts/tekmo, min 5 napovedi)
+  // Izločilni specialist — top 3 (avg pts/tekmo, min 5 napovedi)
   const bestKnockout = globalUsers
     .map((u) => {
       const s = uStats[u.user_id]
       return { name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
         avg: s && s.kooN >= 5 ? s.kooPts / s.kooN : -1, count: s?.kooN ?? 0 }
     })
-    .filter((u) => u.avg >= 0).sort((a, b) => b.avg - a.avg)[0] ?? null
+    .filter((u) => u.avg >= 0).sort((a, b) => b.avg - a.avg).slice(0, 3)
 
-  // Zanesljivec — največ pravilnih napovedi (earned_points > 0)
+  // Zanesljivec — top 3 (največ pravilnih napovedi > 0 točk)
   const mostCorrect = globalUsers
     .map((u) => ({ name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
       correct: uStats[u.user_id]?.correct ?? 0 }))
-    .sort((a, b) => b.correct - a.correct)[0] ?? null
+    .sort((a, b) => b.correct - a.correct).slice(0, 3)
 
-  // Točen rezultat — največ točnih izidov (3 ali 6 točk)
+  // Točen rezultat — top 3 (točnih izidov: pred==actual)
   const mostExact = globalUsers
     .map((u) => ({ name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
       exact: uStats[u.user_id]?.exact ?? 0 }))
-    .sort((a, b) => b.exact - a.exact)[0] ?? null
+    .sort((a, b) => b.exact - a.exact).slice(0, 3)
 
   // Posebni strokovnjak — največ točk iz posebnih napovedi
   const bestSpecial = globalUsers

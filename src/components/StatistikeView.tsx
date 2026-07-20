@@ -39,11 +39,11 @@ type StatMatch = {
 
 type Props = {
   top3: TopPlayer[]
-  bestGroup: StatPerson | null
-  bestKnockout: StatPerson | null
-  mostExact: StatPerson | null          // največ točnih rezultatov (3/6 točk)
-  mostCorrect: StatPerson | null        // največ pravilnih napovedi (> 0 točk)
-  bestSpecial: StatPerson | null        // največ točk iz posebnih napovedi
+  bestGroup: StatPerson[]
+  bestKnockout: StatPerson[]
+  mostExact: StatPerson[]
+  mostCorrect: StatPerson[]
+  bestSpecial: StatPerson | null
   hardestMatch: StatMatch | null
   easiestMatch: StatMatch | null
   totalParticipants: number
@@ -99,20 +99,36 @@ function StatCard({ title, icon, children }: { title: string; icon: string; chil
   )
 }
 
-function PersonStat({ person, value, sub }: { person: StatPerson; value: string; sub: string }) {
+function PersonRankList({ people, getValue, sub }: {
+  people: StatPerson[]
+  getValue: (p: StatPerson) => string
+  sub: string
+}) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <Avatar initials={person.initials} avatarUrl={person.avatarUrl} you={person.you} size={42} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#15201d', display: 'flex', alignItems: 'center', gap: 6 }}>
-          {person.name}
-          {person.you && <span style={{ fontSize: 11, fontWeight: 600, color: '#0f766e' }}>ti</span>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {people.map((person, i) => (
+        <div key={person.name} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          {/* medal */}
+          <div style={{
+            width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+            background: MEDAL_BG[i], color: MEDAL_TEXT[i],
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 800,
+            boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.5)',
+          }}>{i + 1}</div>
+          <Avatar initials={person.initials} avatarUrl={person.avatarUrl} you={person.you} size={32} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#15201d', display: 'flex', alignItems: 'center', gap: 5, lineHeight: 1.2 }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{person.name}</span>
+              {person.you && <span style={{ fontSize: 10, fontWeight: 600, color: '#0f766e', flexShrink: 0 }}>ti</span>}
+            </div>
+            {i === 0 && <div style={{ fontSize: 11, color: '#9aa1ab', marginTop: 1 }}>{sub}</div>}
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: i === 0 ? '#0f766e' : '#475467', fontVariantNumeric: 'tabular-nums', lineHeight: 1, flexShrink: 0 }}>
+            {getValue(person)}
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: '#9aa1ab', marginTop: 2 }}>{sub}</div>
-      </div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: '#0f766e', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-        {value}
-      </div>
+      ))}
     </div>
   )
 }
@@ -211,42 +227,42 @@ export default function StatistikeView({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
 
-        {bestGroup && (
+        {bestGroup.length > 0 && (
           <StatCard title="Skupinski mojster" icon="⚽">
-            <PersonStat person={bestGroup}
-              value={bestGroup.avg !== undefined ? bestGroup.avg.toFixed(2) : '–'}
-              sub={`povp. točk/tekmo · ${bestGroup.count} tekem`} />
+            <PersonRankList people={bestGroup}
+              getValue={(p) => p.avg !== undefined ? p.avg.toFixed(2) : '–'}
+              sub="povp. točk/tekmo" />
           </StatCard>
         )}
 
-        {bestKnockout && (
+        {bestKnockout.length > 0 && (
           <StatCard title="Izločilni specialist" icon="🏆">
-            <PersonStat person={bestKnockout}
-              value={bestKnockout.avg !== undefined ? bestKnockout.avg.toFixed(2) : '–'}
-              sub={`povp. točk/tekmo · ${bestKnockout.count} tekem`} />
+            <PersonRankList people={bestKnockout}
+              getValue={(p) => p.avg !== undefined ? p.avg.toFixed(2) : '–'}
+              sub="povp. točk/tekmo" />
           </StatCard>
         )}
 
-        {mostCorrect && (
+        {mostCorrect.length > 0 && (
           <StatCard title="Zanesljivec" icon="✓">
-            <PersonStat person={mostCorrect}
-              value={String(mostCorrect.correct ?? 0)}
-              sub="tekem z vsaj 1 točko (pravilna smer)" />
+            <PersonRankList people={mostCorrect}
+              getValue={(p) => String(p.correct ?? 0)}
+              sub="tekem z vsaj 1 točko" />
           </StatCard>
         )}
 
-        {mostExact && (
+        {mostExact.length > 0 && (
           <StatCard title="Točen rezultat" icon="🎯">
-            <PersonStat person={mostExact}
-              value={String(mostExact.exact ?? 0)}
-              sub="točnih izidov (3 ali 6 točk)" />
+            <PersonRankList people={mostExact}
+              getValue={(p) => String(p.exact ?? 0)}
+              sub="točnih izidov" />
           </StatCard>
         )}
 
         {bestSpecial && (
           <StatCard title="Posebne napovedi" icon="🔮">
-            <PersonStat person={bestSpecial}
-              value={String(bestSpecial.special ?? 0)}
+            <PersonRankList people={[bestSpecial]}
+              getValue={(p) => String(p.special ?? 0)}
               sub="točk iz posebnih napovedi" />
           </StatCard>
         )}
