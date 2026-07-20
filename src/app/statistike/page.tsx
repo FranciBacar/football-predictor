@@ -135,12 +135,14 @@ export default async function StatistikePage() {
       special: uStats[u.user_id]?.special ?? 0 }))
     .filter((u) => u.special > 0).sort((a, b) => b.special - a.special)[0] ?? null
 
-  // Najtežja / najlažja tekma (min 5 napovedi za zanesljivost)
+  // Najtežja / najlažja tekma — pct glede na VSE udeležence (ne samo tiste ki so napovedali)
+  const nParticipants = globalUsers.length
   const matchesRanked = (finishedMatches ?? [])
     .map((m) => {
       const s = mStats[m.id]
       return { id: m.id, homeTeam: m.home_team, awayTeam: m.away_team, stage: m.stage, isKnockout: m.is_knockout,
-        correct: s?.correct ?? 0, total: s?.total ?? 0, pct: s && s.total >= 5 ? s.correct / s.total : null }
+        correct: s?.correct ?? 0, total: s?.total ?? 0,
+        pct: s && s.total >= 5 ? s.correct / nParticipants : null }
     })
     .filter((m) => m.pct !== null)
     .sort((a, b) => (a.pct ?? 1) - (b.pct ?? 1))

@@ -117,8 +117,8 @@ function PersonStat({ person, value, sub }: { person: StatPerson; value: string;
   )
 }
 
-function MatchStat({ match, label }: { match: StatMatch; label: string }) {
-  const pct = match.pct !== null ? Math.round(match.pct * 100) : 0
+function MatchStat({ match, total, label }: { match: StatMatch; total: number; label: string }) {
+  const pct = Math.round((match.correct / total) * 100)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -127,13 +127,11 @@ function MatchStat({ match, label }: { match: StatMatch; label: string }) {
         </span>
         <span style={{ fontSize: 24, fontWeight: 800, color: '#0f766e', lineHeight: 1 }}>{pct}%</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ flex: 1, height: 6, borderRadius: 99, background: '#f0f2f1', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pct}%`, borderRadius: 99, background: pct === 0 ? '#e5e7eb' : '#0f766e' }} />
-        </div>
+      <div style={{ flex: 1, height: 6, borderRadius: 99, background: '#f0f2f1', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 99, background: pct === 0 ? '#e5e7eb' : '#0f766e' }} />
       </div>
       <div style={{ fontSize: 12, color: '#6b7280' }}>
-        <b>{match.correct}</b> od <b>{match.total}</b> udeležencev je napovedalo pravilno
+        <b>{match.correct}</b> od <b>{total}</b> udeležencev je napovedalo pravilno
       </div>
       <div style={{ fontSize: 11, color: '#b0b8c1' }}>{label}</div>
     </div>
@@ -273,7 +271,7 @@ export default function StatistikeView({
         {hardestMatch && (
           <div style={{ gridColumn: '1 / -1' }}>
             <StatCard title="Najtežja tekma" icon="😬">
-              <MatchStat match={hardestMatch} label="Najmanj udeležencev je napovedalo pravilno" />
+              <MatchStat match={hardestMatch} total={totalParticipants} label="Najmanj udeležencev je napovedalo pravilno" />
             </StatCard>
           </div>
         )}
@@ -281,7 +279,7 @@ export default function StatistikeView({
         {easiestMatch && (
           <div style={{ gridColumn: '1 / -1' }}>
             <StatCard title="Najlažja tekma" icon="✅">
-              <MatchStat match={easiestMatch} label="Največ udeležencev je napovedalo pravilno" />
+              <MatchStat match={easiestMatch} total={totalParticipants} label="Največ udeležencev je napovedalo pravilno" />
             </StatCard>
           </div>
         )}
