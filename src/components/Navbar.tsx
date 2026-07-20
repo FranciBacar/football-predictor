@@ -16,17 +16,17 @@ export default function Navbar({ activePath }: { activePath: string }) {
       {/* Desktop */}
       <nav className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 flex items-center gap-8">
-          <Link href="/dashboard" className={`${linkBase} ${activePath === '/dashboard' ? active : inactive}`}>
-            <Trophy size={18} />
-            Napovedi
+          <Link href="/statistike" className={`${linkBase} ${activePath === '/statistike' ? active : inactive}`}>
+            <Star size={18} />
+            Statistike
           </Link>
           <Link href="/leaderboard" className={`${linkBase} ${activePath === '/leaderboard' ? active : inactive}`}>
             <BarChart2 size={18} />
             Lestvica
           </Link>
-          <Link href="/statistike" className={`${linkBase} ${activePath === '/statistike' ? active : inactive}`}>
-            <Star size={18} />
-            Statistike
+          <Link href="/dashboard" className={`${linkBase} ${activePath === '/dashboard' ? active : inactive}`}>
+            <Trophy size={18} />
+            Napovedi
           </Link>
           <Link href="/groups" className={`${linkBase} ${activePath === '/groups' ? active : inactive}`}>
             <Users size={18} />
@@ -50,17 +50,17 @@ export default function Navbar({ activePath }: { activePath: string }) {
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex justify-around">
-          <Link href="/dashboard" className={`${mobileBase} ${activePath === '/dashboard' ? mobileActive : mobileInactive}`}>
-            <Trophy size={22} />
-            Napovedi
+          <Link href="/statistike" className={`${mobileBase} ${activePath === '/statistike' ? mobileActive : mobileInactive}`}>
+            <Star size={22} />
+            Statistike
           </Link>
           <Link href="/leaderboard" className={`${mobileBase} ${activePath === '/leaderboard' ? mobileActive : mobileInactive}`}>
             <BarChart2 size={22} />
             Lestvica
           </Link>
-          <Link href="/statistike" className={`${mobileBase} ${activePath === '/statistike' ? mobileActive : mobileInactive}`}>
-            <Star size={22} />
-            Statistike
+          <Link href="/dashboard" className={`${mobileBase} ${activePath === '/dashboard' ? mobileActive : mobileInactive}`}>
+            <Trophy size={22} />
+            Napovedi
           </Link>
           <Link href="/groups" className={`${mobileBase} ${activePath === '/groups' ? mobileActive : mobileInactive}`}>
             <Users size={22} />

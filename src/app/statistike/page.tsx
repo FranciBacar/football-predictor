@@ -49,23 +49,31 @@ export default async function StatistikePage() {
     you: u.user_id === user.id,
   }))
 
-  // 2. Pridobi vse napovedi + zaključene tekme
+  // 2. Napovedi + zaključene tekme + posebne napovedi
   const globalIds = new Set(globalUsers.map((u) => u.user_id))
 
-  const [{ data: allPreds }, { data: finishedMatches }] = await Promise.all([
+  const [{ data: allPreds }, { data: finishedMatches }, { data: allSpecial }] = await Promise.all([
     admin.from('predictions').select('user_id, match_id, earned_points'),
     admin.from('matches').select('id, home_team, away_team, stage, is_knockout').eq('status', 'Finished'),
+    admin.from('special_predictions').select('user_id, earned_points'),
   ])
 
   const matchMap = new Map((finishedMatches ?? []).map((m) => [m.id, m]))
 
   // Statistike po uporabniku
-  type UStats = { grpPts: number; grpN: number; kooPts: number; kooN: number; exact: number }
+  type UStats = { grpPts: number; grpN: number; kooPts: number; kooN: number; exact: number; correct: number; special: number }
   const uStats: Record<string, UStats> = {}
 
   // Statistike po tekmi
   type MStats = { correct: number; total: number }
   const mStats: Record<string, MStats> = {}
+
+  // Posebne napovedi po uporabniku
+  for (const sp of (allSpecial ?? [])) {
+    if (!globalIds.has(sp.user_id)) continue
+    if (!uStats[sp.user_id]) uStats[sp.user_id] = { grpPts: 0, grpN: 0, kooPts: 0, kooN: 0, exact: 0, correct: 0, special: 0 }
+    uStats[sp.user_id].special += sp.earned_points ?? 0
+  }
 
   for (const p of (allPreds ?? [])) {
     if (!globalIds.has(p.user_id)) continue
@@ -73,7 +81,7 @@ export default async function StatistikePage() {
     if (!m) continue
 
     const pts = p.earned_points ?? 0
-    if (!uStats[p.user_id]) uStats[p.user_id] = { grpPts: 0, grpN: 0, kooPts: 0, kooN: 0, exact: 0 }
+    if (!uStats[p.user_id]) uStats[p.user_id] = { grpPts: 0, grpN: 0, kooPts: 0, kooN: 0, exact: 0, correct: 0, special: 0 }
 
     if (m.is_knockout) {
       uStats[p.user_id].kooPts += pts
@@ -82,61 +90,56 @@ export default async function StatistikePage() {
       uStats[p.user_id].grpPts += pts
       uStats[p.user_id].grpN++
     }
-    // exact = 3 ali 6 točk (točen rezultat)
     if (pts === 3 || pts === 6) uStats[p.user_id].exact++
+    if (pts > 0) uStats[p.user_id].correct++
 
     if (!mStats[p.match_id]) mStats[p.match_id] = { correct: 0, total: 0 }
     mStats[p.match_id].total++
     if (pts > 0) mStats[p.match_id].correct++
   }
 
-  // Najboljši skupinski napovedi (avg pts / tekma, min 20 napovedi)
+  // Najboljši skupinski napovedi (avg pts/tekmo, min 20 napovedi)
   const bestGroup = globalUsers
     .map((u) => {
       const s = uStats[u.user_id]
-      return {
-        name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null,
-        you: u.user_id === user.id,
-        avg: s && s.grpN >= 20 ? s.grpPts / s.grpN : -1,
-        count: s?.grpN ?? 0,
-      }
+      return { name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
+        avg: s && s.grpN >= 20 ? s.grpPts / s.grpN : -1, count: s?.grpN ?? 0 }
     })
-    .filter((u) => u.avg >= 0)
-    .sort((a, b) => b.avg - a.avg)[0] ?? null
+    .filter((u) => u.avg >= 0).sort((a, b) => b.avg - a.avg)[0] ?? null
 
-  // Najboljši izločilni napovedi (avg pts / tekma, min 5 napovedi)
+  // Najboljši izločilni napovedi (avg pts/tekmo, min 5 napovedi)
   const bestKnockout = globalUsers
     .map((u) => {
       const s = uStats[u.user_id]
-      return {
-        name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null,
-        you: u.user_id === user.id,
-        avg: s && s.kooN >= 5 ? s.kooPts / s.kooN : -1,
-        count: s?.kooN ?? 0,
-      }
+      return { name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
+        avg: s && s.kooN >= 5 ? s.kooPts / s.kooN : -1, count: s?.kooN ?? 0 }
     })
-    .filter((u) => u.avg >= 0)
-    .sort((a, b) => b.avg - a.avg)[0] ?? null
+    .filter((u) => u.avg >= 0).sort((a, b) => b.avg - a.avg)[0] ?? null
 
-  // Nostradamus — največ točnih rezultatov
-  const nostradamus = globalUsers
-    .map((u) => ({
-      name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null,
-      you: u.user_id === user.id,
-      exact: uStats[u.user_id]?.exact ?? 0,
-    }))
+  // Zanesljivec — največ pravilnih napovedi (earned_points > 0)
+  const mostCorrect = globalUsers
+    .map((u) => ({ name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
+      correct: uStats[u.user_id]?.correct ?? 0 }))
+    .sort((a, b) => b.correct - a.correct)[0] ?? null
+
+  // Točen rezultat — največ točnih izidov (3 ali 6 točk)
+  const mostExact = globalUsers
+    .map((u) => ({ name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
+      exact: uStats[u.user_id]?.exact ?? 0 }))
     .sort((a, b) => b.exact - a.exact)[0] ?? null
 
-  // Najtežja / najlažja tekma (min 3 napovedi)
+  // Posebni strokovnjak — največ točk iz posebnih napovedi
+  const bestSpecial = globalUsers
+    .map((u) => ({ name: u.name, initials: mkInitials(u.name), avatarUrl: u.avatar_url as string | null, you: u.user_id === user.id,
+      special: uStats[u.user_id]?.special ?? 0 }))
+    .filter((u) => u.special > 0).sort((a, b) => b.special - a.special)[0] ?? null
+
+  // Najtežja / najlažja tekma (min 5 napovedi za zanesljivost)
   const matchesRanked = (finishedMatches ?? [])
     .map((m) => {
       const s = mStats[m.id]
-      return {
-        id: m.id, homeTeam: m.home_team, awayTeam: m.away_team,
-        stage: m.stage, isKnockout: m.is_knockout,
-        correct: s?.correct ?? 0, total: s?.total ?? 0,
-        pct: s && s.total >= 3 ? s.correct / s.total : null,
-      }
+      return { id: m.id, homeTeam: m.home_team, awayTeam: m.away_team, stage: m.stage, isKnockout: m.is_knockout,
+        correct: s?.correct ?? 0, total: s?.total ?? 0, pct: s && s.total >= 5 ? s.correct / s.total : null }
     })
     .filter((m) => m.pct !== null)
     .sort((a, b) => (a.pct ?? 1) - (b.pct ?? 1))
@@ -158,7 +161,9 @@ export default async function StatistikePage() {
           top3={top3}
           bestGroup={bestGroup}
           bestKnockout={bestKnockout}
-          nostradamus={nostradamus}
+          mostExact={mostExact}
+          mostCorrect={mostCorrect}
+          bestSpecial={bestSpecial}
           hardestMatch={hardestMatch}
           easiestMatch={easiestMatch}
           totalParticipants={globalUsers.length}

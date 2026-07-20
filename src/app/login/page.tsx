@@ -8,7 +8,7 @@ function LoginForm() {
   const supabase = createClient()
   const searchParams = useSearchParams()
   const inviteCode = searchParams.get('inviteCode')
-  const next = inviteCode ? `/join?code=${inviteCode}` : '/dashboard'
+  const next = inviteCode ? `/join?code=${inviteCode}` : '/statistike'
 
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({
