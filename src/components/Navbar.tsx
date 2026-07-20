@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Trophy, Users, BarChart2, UserCircle } from 'lucide-react'
+import { Trophy, Users, BarChart2, UserCircle, Star } from 'lucide-react'
 import NavbarProfileSwitcher from './NavbarProfileSwitcher'
 
 export default function Navbar({ activePath }: { activePath: string }) {
@@ -23,6 +23,10 @@ export default function Navbar({ activePath }: { activePath: string }) {
           <Link href="/leaderboard" className={`${linkBase} ${activePath === '/leaderboard' ? active : inactive}`}>
             <BarChart2 size={18} />
             Lestvica
+          </Link>
+          <Link href="/statistike" className={`${linkBase} ${activePath === '/statistike' ? active : inactive}`}>
+            <Star size={18} />
+            Statistike
           </Link>
           <Link href="/groups" className={`${linkBase} ${activePath === '/groups' ? active : inactive}`}>
             <Users size={18} />
@@ -53,6 +57,10 @@ export default function Navbar({ activePath }: { activePath: string }) {
           <Link href="/leaderboard" className={`${mobileBase} ${activePath === '/leaderboard' ? mobileActive : mobileInactive}`}>
             <BarChart2 size={22} />
             Lestvica
+          </Link>
+          <Link href="/statistike" className={`${mobileBase} ${activePath === '/statistike' ? mobileActive : mobileInactive}`}>
+            <Star size={22} />
+            Statistike
           </Link>
           <Link href="/groups" className={`${mobileBase} ${activePath === '/groups' ? mobileActive : mobileInactive}`}>
             <Users size={22} />
