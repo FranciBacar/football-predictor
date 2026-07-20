@@ -53,8 +53,8 @@ export default async function StatistikePage() {
   const globalIds = new Set(globalUsers.map((u) => u.user_id))
 
   const [{ data: allPreds }, { data: finishedMatches }, { data: allSpecial }] = await Promise.all([
-    admin.from('predictions').select('user_id, match_id, earned_points'),
-    admin.from('matches').select('id, home_team, away_team, stage, is_knockout').eq('status', 'Finished'),
+    admin.from('predictions').select('user_id, match_id, earned_points, pred_score_home, pred_score_away'),
+    admin.from('matches').select('id, home_team, away_team, stage, is_knockout, actual_score_home, actual_score_away').eq('status', 'Finished'),
     admin.from('special_predictions').select('user_id, earned_points'),
   ])
 
@@ -90,7 +90,8 @@ export default async function StatistikePage() {
       uStats[p.user_id].grpPts += pts
       uStats[p.user_id].grpN++
     }
-    if (pts === 3 || pts === 6) uStats[p.user_id].exact++
+    // Točen izid: enaka definicija kot RPC (primerjaj napovedano vs dejanski rezultat)
+    if (p.pred_score_home === m.actual_score_home && p.pred_score_away === m.actual_score_away) uStats[p.user_id].exact++
     if (pts > 0) uStats[p.user_id].correct++
 
     if (!mStats[p.match_id]) mStats[p.match_id] = { correct: 0, total: 0 }
@@ -150,7 +151,10 @@ export default async function StatistikePage() {
   // Skupne številke
   const filteredPreds = (allPreds ?? []).filter((p) => globalIds.has(p.user_id) && matchMap.has(p.match_id))
   const totalPredictions = filteredPreds.length
-  const totalExact = filteredPreds.filter((p) => p.earned_points === 3 || p.earned_points === 6).length
+  const totalExact = filteredPreds.filter((p) => {
+    const m = matchMap.get(p.match_id)
+    return m && p.pred_score_home === m.actual_score_home && p.pred_score_away === m.actual_score_away
+  }).length
   const totalMatches = finishedMatches?.length ?? 0
 
   return (
