@@ -109,7 +109,7 @@ function buildHTML(top3: TopPlayer[], firstName: string, totalUsers: number) {
       <tr>
         <td style="padding:12px 20px 20px;">
           <div style="background:#f0fdf9;border-left:3px solid #2dd4bf;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:#374151;line-height:1.6;">
-            🤝 <strong>${top3[0].name}</strong> in <strong>${top3[1].name}</strong> sta končala z enakim številom točk (${top3[0].total_points}). Zmagala je ${top3[0].name.split(' ')[0]}, ker je napovedala <strong>${top3[0].exact_predictions} točnih izidov</strong> — ${top3[1].name.split(' ')[0]} jih je imel/a <strong>${top3[1].exact_predictions}</strong>.
+            🤝 <strong>${top3[0].name}</strong> in <strong>${top3[1].name}</strong> sta končala z enakim številom točk (${top3[0].total_points}). Zmagala je ${top3[0].name.split(' ')[0]}, ker je napovedala <strong>${top3[0].exact_predictions} točnih izidov</strong> — ${top3[1].name.split(' ')[0]} jih je imel <strong>${top3[1].exact_predictions}</strong>.
           </div>
         </td>
       </tr>` : `<tr><td style="padding-bottom:20px;"></td></tr>`}
