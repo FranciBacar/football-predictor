@@ -14,7 +14,7 @@ const PODIUM_COLORS = [
   { bg: 'linear-gradient(140deg,#ecca9f,#c08a55)', text: '#6e4824' },
 ]
 
-type TopPlayer = { rank: number; name: string; total_points: number; avatar_url: string | null }
+type TopPlayer = { rank: number; name: string; total_points: number; exact_predictions: number; avatar_url: string | null }
 
 function buildHTML(top3: TopPlayer[], firstName: string, totalUsers: number) {
   const preheader = `SP 2026 je končan. Hvala za igranje — poglejte končno lestvico in statistike!`
@@ -51,7 +51,7 @@ function buildHTML(top3: TopPlayer[], firstName: string, totalUsers: number) {
     ['✓',  'Zanesljivec', 'kdo je imel največ pravilnih napovedi'],
     ['🎯', 'Točen rezultat', 'kdo je napovedal največ točnih izidov'],
     ['🔮', 'Posebne napovedi', 'kdo je vedel kdo bo zmagovalec in MVP'],
-    ['😬', 'Najtežja tekma', 'katera tekma je presenetila največ nas'],
+    ['😬', 'Najtežja tekma', 'tekma ki jo je največ igralcev napovedalo narobe'],
   ]
 
   return `<!DOCTYPE html>
@@ -77,7 +77,7 @@ function buildHTML(top3: TopPlayer[], firstName: string, totalUsers: number) {
           SP 2026 je končan. 🏆<br>Hvala za igranje!
         </h1>
         <p style="margin:0;font-size:15px;color:rgba(255,255,255,0.88);line-height:1.65;">
-          ${firstName ? `Pozdravljeni, <strong>${firstName}</strong>! ` : 'Pozdravljeni! '}Turnir je za nami in z njim tudi naše napovedi. Skupaj nas je bilo ${totalUsers} napovedovalcev. Čas je za končni obračun.
+          ${firstName ? `Pozdravljeni, <strong>${firstName}</strong>! ` : 'Pozdravljeni! '}Turnir je za nami in z njim tudi naše napovedi. Hvala vsem za igranje.
         </p>
       </td></tr>
     </table>
@@ -101,10 +101,18 @@ function buildHTML(top3: TopPlayer[], firstName: string, totalUsers: number) {
         </td>
       </tr>
       <tr>
-        <td style="padding:16px 20px 20px;text-align:center;">
+        <td style="padding:16px 20px 0;text-align:center;">
           ${top3.map((p, i) => `<div style="display:inline-block;background:#f8faf9;border-radius:8px;padding:6px 12px;margin:3px;font-size:13px;">${MEDAL[i]} <strong>${p.name}</strong> — ${p.total_points} točk</div>`).join('')}
         </td>
       </tr>
+      ${top3.length >= 2 && top3[0].total_points === top3[1].total_points ? `
+      <tr>
+        <td style="padding:12px 20px 20px;">
+          <div style="background:#f0fdf9;border-left:3px solid #2dd4bf;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:#374151;line-height:1.6;">
+            🤝 <strong>${top3[0].name}</strong> in <strong>${top3[1].name}</strong> sta končala z enakim številom točk (${top3[0].total_points}). Zmagala je ${top3[0].name.split(' ')[0]}, ker je napovedala <strong>${top3[0].exact_predictions} točnih izidov</strong> — ${top3[1].name.split(' ')[0]} jih je imel/a <strong>${top3[1].exact_predictions}</strong>.
+          </div>
+        </td>
+      </tr>` : `<tr><td style="padding-bottom:20px;"></td></tr>`}
     </table>
   </td></tr>
 
@@ -119,7 +127,7 @@ function buildHTML(top3: TopPlayer[], firstName: string, totalUsers: number) {
         </td>
       </tr>
       <tr><td style="padding:20px 24px;">
-        <p style="margin:0 0 14px;font-size:14px;color:#374151;line-height:1.65;">Na strani statistik najdete še:</p>
+        <p style="margin:0 0 14px;font-size:14px;color:#374151;line-height:1.65;">Na <a href="https://predictor.greatish.app/statistike" style="color:#0f766e;font-weight:700;text-decoration:none;">strani statistik</a> najdete še:</p>
         <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
           ${statItems.map(([icon, title, desc]) => `
           <tr>
@@ -193,6 +201,7 @@ export async function GET(req: NextRequest) {
       rank: i + 1,
       name: e.name,
       total_points: e.total_points,
+      exact_predictions: e.exact_predictions,
       avatar_url: userMap[e.user_id]?.avatar_url ?? null,
     }))
 
